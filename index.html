@@ -144,14 +144,6 @@
 
   </div>
   </div>
-
-    <footer style="padding: var(--space-6) 2px 0; border-top: 1px solid var(--color-divider);">
-      <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2);">
-        <div style="width: 11px; height: 11px; border-radius: 999px; background: var(--color-accent-2); flex: none;"></div>
-        <div style="font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700;">{{ sourceLine }}</div>
-      </div>
-      <div style="font-size: 12px; color: var(--color-neutral-600); line-height: 1.65;">{{ footerLine }}</div>
-    </footer>
   </div>
 
   <div style="position: fixed; left: 0; right: 0; bottom: 0; padding: var(--space-3) var(--space-4) var(--space-4); background: linear-gradient(to top, var(--color-bg) 58%, rgba(245,234,216,0)); pointer-events: none;">
@@ -250,8 +242,7 @@
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:900}}">
 const KEY = "mcnamara-cellar-v2";
 
-/* Snapshot of wine_list.xlsx — also written to wines.json for the code handoff.
-   In Claude Code, replace RAW with a fetch of the live sheet.
+/* Cellar inventory — mirrored in wines.json.
    Row shape: [id, qty, vintage, name, color, country, region, grape, cost, notes] */
 const RAW = [
   [1,1,"2023","nuits st george \"Clos D'Arlot\" 1er cru","white","France","Burgundy","Chardonnay",168,"vila vinoteca barcelona"],
@@ -843,12 +834,10 @@ class Component extends DCLogic {
     const nextSort = { price: "name", name: "vintage", vintage: "price" };
 
     return {
-      sourceLine: "Live from wine_list.xlsx",
       mapRef: function (el) { self.mapEl = el; },
       onMapLoad: function () { self.postMap(); },
       mapHint: st.regions.length ? "Tap a bubble to clear" : "Tap a bubble to filter",
       summaryLine: totalBottles + " bottles in the cellar · $" + value.toLocaleString() + " at cost",
-      footerLine: "Inventory reads from wine_list.xlsx. Bottles you add, edit, or finish are held on this device until the sheet is written back. Drink-by windows need a Drink-by column in the sheet.",
       tabs: tabs,
       query: st.query,
       onQuery: function (e) { self.setState({ query: e.target.value }); },
