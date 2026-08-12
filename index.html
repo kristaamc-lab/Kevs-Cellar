@@ -113,6 +113,10 @@
           <div style="font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700;">Finished</div>
           <div style="font-family: var(--font-heading); font-size: 22px; margin-top: 3px;">{{ dashFinished }}</div>
         </div>
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-3);">
+          <div style="font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700;">At peak</div>
+          <div style="font-family: var(--font-heading); font-size: 22px; margin-top: 3px;">{{ dashAtPeak }}</div>
+        </div>
       </div>
     </sc-if>
 
@@ -148,17 +152,20 @@
                 <div style="font-size: 14px; font-weight: 700; color: var(--color-accent-700); flex: none;">{{ w.price }}</div>
               </div>
 
-              <div style="display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3);">
-                <div style="display: flex; gap: 6px; flex-wrap: wrap; flex: 1; align-items: center;">
+              <div style="margin-top: var(--space-3);">
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
                   <span style="border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 700; background: {{ w.tagBg }}; color: {{ w.tagFg }};">{{ w.style }}</span>
-                  <sc-if value="{{ w.hasNote }}" hint-placeholder-val="{{ false }}">
-                    <span style="border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--color-neutral-700); border: 1px solid var(--color-divider);">{{ w.note }}</span>
-                  </sc-if>
                   <sc-if value="{{ w.hasStars }}" hint-placeholder-val="{{ false }}">
                     <span style="font-size: 13px; color: var(--color-accent-600); letter-spacing: 0.08em;">{{ w.stars }}</span>
                   </sc-if>
                   <sc-if value="{{ w.hasRatedCount }}" hint-placeholder-val="{{ false }}">
                     <span style="font-size: 11px; color: var(--color-neutral-600);">{{ w.ratedCountLabel }}</span>
+                  </sc-if>
+                  <sc-if value="{{ w.hasStatus }}" hint-placeholder-val="{{ false }}">
+                    <span style="display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 4px 10px 4px 8px; font-size: 11px; font-weight: 600; color: var(--color-neutral-800); border: 1px solid var(--color-divider);"><span style="width: 7px; height: 7px; border-radius: 999px; background: {{ w.statusColor }}; flex: none;"></span>{{ w.statusLabel }}</span>
+                  </sc-if>
+                  <sc-if value="{{ w.hasNote }}" hint-placeholder-val="{{ false }}">
+                    <span style="border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--color-neutral-700); border: 1px solid var(--color-divider);">{{ w.note }}</span>
                   </sc-if>
                   <sc-if value="{{ w.hasDrunk }}" hint-placeholder-val="{{ false }}">
                     <span style="border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--color-neutral-700); border: 1px solid var(--color-divider);">{{ w.drunkLabel }}</span>
@@ -167,12 +174,14 @@
                     <span style="font-size: 11px; color: var(--color-neutral-600);">{{ w.locationLabel }}</span>
                   </sc-if>
                 </div>
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; margin-top: var(--space-2);">
                 <button type="button" onClick="{{ w.onEdit }}" title="Edit details" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 13px; font-size: 12.5px; font-weight: 600; color: var(--color-neutral-700); flex: none;">Edit</button>
                 <sc-if value="{{ w.hasInventoryActions }}" hint-placeholder-val="{{ true }}">
                   <button type="button" onClick="{{ w.onBumpDown }}" disabled="{{ !w.canBumpDown }}" title="Drank/lost a bottle without rating it" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 12px; font-size: 12.5px; font-weight: 700; color: var(--color-neutral-700); flex: none;">−1</button>
                   <button type="button" onClick="{{ w.onBump }}" title="Bought another bottle" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 12px; font-size: 12.5px; font-weight: 700; color: var(--color-neutral-700); flex: none;">+1</button>
                   <button type="button" onClick="{{ w.onAction }}" style="border: 0; cursor: pointer; border-radius: 999px; padding: 9px 15px; font-size: 12.5px; font-family: var(--font-heading); background: {{ w.actionBg }}; color: {{ w.actionFg }}; flex: none;">{{ w.actionLabel }}</button>
                 </sc-if>
+                </div>
               </div>
             </article>
           </sc-for>
@@ -551,8 +560,19 @@ function normalise(o) {
     style: styleOf(o.color, sparkling), sparkling: sparkling,
     added: !!o.added, qty: o.qty != null ? Number(o.qty) : 1,
     rack: o.rack || "", shelf: o.shelf || "",
+    drinkStart: o.drinkStart ? Number(o.drinkStart) : null,
+    drinkEnd: o.drinkEnd ? Number(o.drinkEnd) : null,
     note: notes.replace(/sparkling\s*\/?\s*/i, "").trim()
   };
+}
+
+/* "ready" | "hold" | "past" | null (null = no drinking window set). */
+function drinkStatus(w) {
+  if (!w.drinkStart && !w.drinkEnd) return null;
+  const year = new Date().getFullYear();
+  if (w.drinkStart && year < w.drinkStart) return "hold";
+  if (w.drinkEnd && year > w.drinkEnd) return "past";
+  return "ready";
 }
 
 const BASE = RAW.map(function (r) {
@@ -570,7 +590,7 @@ function loadStore() {
   } catch (e) { return { log: {}, added: [], consumed: {}, overrides: {}, baseline: {} }; }
 }
 
-const EMPTY_DRAFT = { name: "", vintage: "", region: "", regionOther: "", country: "", grape: "", cost: "", notes: "", style: "White", qty: "1", baseline: "0", rack: "", shelf: "" };
+const EMPTY_DRAFT = { name: "", vintage: "", region: "", regionOther: "", country: "", grape: "", cost: "", notes: "", style: "White", qty: "1", baseline: "0", rack: "", shelf: "", drinkStart: "", drinkEnd: "" };
 
 class Component extends DCLogic {
   state = (function () {
@@ -843,7 +863,9 @@ class Component extends DCLogic {
       color: d.style === "Rosé" ? "rose" : d.style === "Red" ? "red" : "white",
       sparkling: d.style === "Sparkling",
       qty: isNaN(n) ? 1 : Math.max(0, n),
-      rack: d.rack.trim(), shelf: d.shelf.trim()
+      rack: d.rack.trim(), shelf: d.shelf.trim(),
+      drinkStart: parseInt(d.drinkStart, 10) || null,
+      drinkEnd: parseInt(d.drinkEnd, 10) || null
     };
     const baseline = Object.assign({}, this.state.baseline);
     if (this.state.editingId != null) {
@@ -896,7 +918,8 @@ class Component extends DCLogic {
         country: w.country, grape: w.grape, cost: String(w.cost), notes: w.notes,
         style: styleOf(w.color, w.sparkling), qty: String(w.qty),
         baseline: String(this.state.baseline[w.id] || 0),
-        rack: w.rack || "", shelf: w.shelf || ""
+        rack: w.rack || "", shelf: w.shelf || "",
+        drinkStart: w.drinkStart ? String(w.drinkStart) : "", drinkEnd: w.drinkEnd ? String(w.drinkEnd) : ""
       }
     });
   }
@@ -969,6 +992,12 @@ class Component extends DCLogic {
       const noteText = lastEntry && lastEntry.note ? lastEntry.note : w.note;
       const rem = self.remaining(w);
       const totalDrunk = self.totalFinished(w);
+      const status = drinkStatus(w);
+      const statusMeta = {
+        ready: { label: "Ready to drink", color: "#7a8a5e" },
+        hold: { label: "Hold — aging", color: "#c67139" },
+        past: { label: "Past peak", color: "#a8453a" }
+      }[status];
       return {
         name: w.name,
         meta: [w.region, w.grape].filter(Boolean).join(" · "),
@@ -989,6 +1018,9 @@ class Component extends DCLogic {
         drunkLabel: totalDrunk + " finished all-time",
         hasLocation: !!(w.rack || w.shelf),
         locationLabel: [w.rack ? "Rack " + w.rack : "", w.shelf ? "Shelf " + w.shelf : ""].filter(Boolean).join(" · "),
+        hasStatus: !!statusMeta,
+        statusLabel: statusMeta ? statusMeta.label : "",
+        statusColor: statusMeta ? statusMeta.color : "",
         onEdit: function () { self.openEdit(w); },
         hasInventoryActions: true,
         canBumpDown: rem > 0,
@@ -1056,6 +1088,8 @@ class Component extends DCLogic {
       ["baseline", "Already finished (before this app)", "0", "numeric"],
       ["rack", "Rack", "A", "text"],
       ["shelf", "Shelf", "2", "text"],
+      ["drinkStart", "Drink from (year)", "leave blank if unknown", "numeric"],
+      ["drinkEnd", "Drink by (year)", "leave blank if unknown", "numeric"],
       ["notes", "Note", "Where you bought it, who it's for", "text"]
     ];
     const addFields = fieldDefs.map(function (f) {
@@ -1123,6 +1157,7 @@ class Component extends DCLogic {
       dashBottles: totalBottles + "",
       dashValue: "$" + value.toLocaleString(),
       dashFinished: finishedCount + "",
+      dashAtPeak: inStock.filter(function (w) { return drinkStatus(w) === "ready"; }).length + "",
       onExport: function () { self.exportBackup(); },
       onImport: function (e) {
         const file = e.target.files && e.target.files[0];
