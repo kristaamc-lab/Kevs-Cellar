@@ -74,22 +74,37 @@
 
     <input value="{{ query }}" onInput="{{ onQuery }}" placeholder="Search producer, grape, appellation" style="width: 100%; border: 1px solid var(--color-divider); background: var(--color-neutral-100); border-radius: 999px; padding: 13px var(--space-4); font-size: 15px; color: var(--color-text); font-family: inherit; margin-bottom: var(--space-3);">
 
-    <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-2);">
-      <sc-for list="{{ typeChips }}" as="chip" hint-placeholder-count="4">
+    <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 6px;">Type</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-3);">
+      <sc-for list="{{ typeChips }}" as="chip" hint-placeholder-count="5">
         <button type="button" onClick="{{ chip.onClick }}" style="border: 1px solid {{ chip.border }}; background: {{ chip.bg }}; color: {{ chip.fg }}; border-radius: 999px; padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 130ms ease;">{{ chip.label }}</button>
       </sc-for>
     </div>
 
-    <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-2);">
+    <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 6px;">Region</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-3);">
       <sc-for list="{{ regionChips }}" as="chip" hint-placeholder-count="6">
         <button type="button" onClick="{{ chip.onClick }}" style="border: 1px solid {{ chip.border }}; background: {{ chip.bg }}; color: {{ chip.fg }}; border-radius: 999px; padding: 7px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 130ms ease;">{{ chip.label }}</button>
       </sc-for>
     </div>
 
-    <div style="display: flex; flex-wrap: wrap; gap: 7px; align-items: center; padding-bottom: var(--space-4);">
-      <sc-for list="{{ metaChips }}" as="chip" hint-placeholder-count="3">
+    <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 6px;">Price</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-3);">
+      <sc-for list="{{ priceChips }}" as="chip" hint-placeholder-count="3">
         <button type="button" onClick="{{ chip.onClick }}" style="border: 1px solid {{ chip.border }}; background: {{ chip.bg }}; color: {{ chip.fg }}; border-radius: 999px; padding: 7px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 130ms ease;">{{ chip.label }}</button>
       </sc-for>
+    </div>
+
+    <sc-if value="{{ hasRatingChips }}" hint-placeholder-val="{{ false }}">
+      <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 6px;">Rating</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-3);">
+        <sc-for list="{{ ratingChips }}" as="chip" hint-placeholder-count="2">
+          <button type="button" onClick="{{ chip.onClick }}" style="border: 1px solid {{ chip.border }}; background: {{ chip.bg }}; color: {{ chip.fg }}; border-radius: 999px; padding: 7px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 130ms ease;">{{ chip.label }}</button>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <div style="display: flex; align-items: center; padding-bottom: var(--space-4);">
       <div style="flex: 1;"></div>
       <sc-if value="{{ hasFilters }}" hint-placeholder-val="{{ false }}">
         <button type="button" onClick="{{ onClearFilters }}" style="border: 0; background: transparent; color: var(--color-accent-700); font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 7px 2px;">Clear filters</button>
@@ -176,9 +191,14 @@
                 </div>
                 <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; margin-top: var(--space-2);">
                 <button type="button" onClick="{{ w.onEdit }}" title="Edit details" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 13px; font-size: 12.5px; font-weight: 600; color: var(--color-neutral-700); flex: none;">Edit</button>
-                <sc-if value="{{ w.hasInventoryActions }}" hint-placeholder-val="{{ true }}">
+                <sc-if value="{{ w.canEditRating }}" hint-placeholder-val="{{ false }}">
+                  <button type="button" onClick="{{ w.onEditRating }}" title="Correct the rating or note" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 13px; font-size: 12.5px; font-weight: 600; color: var(--color-neutral-700); flex: none;">Edit rating</button>
+                </sc-if>
+                <sc-if value="{{ w.showBump }}" hint-placeholder-val="{{ false }}">
                   <button type="button" onClick="{{ w.onBumpDown }}" disabled="{{ !w.canBumpDown }}" title="Drank/lost a bottle without rating it" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 12px; font-size: 12.5px; font-weight: 700; color: var(--color-neutral-700); flex: none;">−1</button>
                   <button type="button" onClick="{{ w.onBump }}" title="Bought another bottle" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 12px; font-size: 12.5px; font-weight: 700; color: var(--color-neutral-700); flex: none;">+1</button>
+                </sc-if>
+                <sc-if value="{{ w.hasInventoryActions }}" hint-placeholder-val="{{ true }}">
                   <button type="button" onClick="{{ w.onAction }}" style="border: 0; cursor: pointer; border-radius: 999px; padding: 9px 15px; font-size: 12.5px; font-family: var(--font-heading); background: {{ w.actionBg }}; color: {{ w.actionFg }}; flex: none;">{{ w.actionLabel }}</button>
                 </sc-if>
                 </div>
@@ -209,11 +229,15 @@
         <div style="font-size: 14px; color: var(--color-neutral-700); margin: var(--space-2) 0 var(--space-4);">{{ modalSub }}</div>
 
         <sc-if value="{{ isSuggest }}" hint-placeholder-val="{{ false }}">
+          <input value="{{ sommelierQuery }}" onInput="{{ onSommelierQuery }}" placeholder="Or describe it — &quot;light red under $30&quot;, &quot;something for steak&quot;" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 14px; color: var(--color-text); font-family: inherit; margin-bottom: var(--space-3);">
           <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-6);">
             <sc-for list="{{ occasions }}" as="occ" hint-placeholder-count="6">
               <button type="button" onClick="{{ occ.onClick }}" style="border: 1px solid {{ occ.border }}; background: {{ occ.bg }}; color: {{ occ.fg }}; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 130ms ease;">{{ occ.label }}</button>
             </sc-for>
           </div>
+          <sc-if value="{{ hasNoPicks }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size: 13px; color: var(--color-neutral-600); padding: var(--space-3) 0;">Nothing in the cellar matched that — try loosening it up.</div>
+          </sc-if>
           <div style="display: flex; flex-direction: column; gap: var(--space-2);">
             <sc-for list="{{ picks }}" as="p" hint-placeholder-count="3">
               <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4);">
@@ -274,7 +298,7 @@
           <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: var(--space-1);">Tasting note</div>
           <input value="{{ draftNote }}" onInput="{{ onDraftNote }}" placeholder="Who, where, how it drank" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 14px; color: var(--color-text); font-family: inherit; margin-bottom: var(--space-6);">
           <div style="display: flex; gap: var(--space-2);">
-            <button type="button" onClick="{{ onConfirmFinish }}" style="flex: 1; border: 0; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); background: var(--color-accent); color: var(--color-accent-100); font-family: var(--font-heading); font-size: 15px;">Log as finished</button>
+            <button type="button" onClick="{{ onConfirmFinish }}" style="flex: 1; border: 0; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); background: var(--color-accent); color: var(--color-accent-100); font-family: var(--font-heading); font-size: 15px;">{{ confirmFinishLabel }}</button>
             <button type="button" onClick="{{ onCloseModal }}" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); color: var(--color-text); font-size: 14px; font-weight: 600;">Cancel</button>
           </div>
         </sc-if>
@@ -598,6 +622,7 @@ class Component extends DCLogic {
     return {
       tab: "cellar", query: "", type: "All", regions: [], price: "All", minRating: 0,
       sort: "price", modal: null, target: null, occasion: "aperitivo", editingId: null,
+      sommelierQuery: "", editingRatingFor: null,
       draftRating: 0, draftNote: "", draft: Object.assign({}, EMPTY_DRAFT),
       addHint: "", log: s.log, added: s.added, consumed: s.consumed, overrides: s.overrides,
       baseline: s.baseline
@@ -725,6 +750,7 @@ class Component extends DCLogic {
     if (s.type === "Sparkling" && !w.sparkling) return false;
     if (s.type === "Still white" && (w.sparkling || w.color !== "white")) return false;
     if (s.type === "Rosé" && w.color !== "rose") return false;
+    if (s.type === "Red" && (w.sparkling || w.color !== "red")) return false;
     if (s.regions.length && s.regions.indexOf(w.region) < 0) return false;
     if (s.price === "Under $40" && w.cost >= 40) return false;
     if (s.price === "$40–100" && (w.cost < 40 || w.cost > 100)) return false;
@@ -829,6 +855,71 @@ class Component extends DCLogic {
     return n;
   }
 
+  /* Free-text "sommelier" search: heuristic keyword matching, not a real
+     AI/LLM call (this is a static site with nowhere safe to hold an API
+     key). Maps food/occasion words onto the same scoring rules as the
+     occasion chips, plus its own price and color/style parsing. */
+  parseSommelierQuery(q) {
+    const s = " " + q.toLowerCase() + " ";
+    let maxPrice = null, minPrice = null;
+    const under = s.match(/(?:under|below|less than|<)\s*\$?\s*(\d+)/);
+    if (under) maxPrice = Number(under[1]);
+    const over = s.match(/(?:over|above|more than|>)\s*\$?\s*(\d+)/);
+    if (over) minPrice = Number(over[1]);
+    if (!maxPrice && !minPrice) {
+      const bare = s.match(/\$\s*(\d+)/);
+      if (bare) maxPrice = Number(bare[1]);
+    }
+    let color = null;
+    if (/\bwhite\b/.test(s)) color = "white";
+    else if (/\brose|rosé\b/.test(s)) color = "rose";
+    else if (/\bred\b/.test(s)) color = "red";
+    const wantsSparkling = /sparkling|champagne|bubbl(y|es)|prosecco|cava/.test(s);
+    const OCC_KEYWORDS = {
+      aperitivo: /aperitivo|ap[ée]ritif|before dinner|starter|welcome drink/,
+      seafood: /seafood|oyster|shellfish|fish|shrimp|sushi|ceviche/,
+      steak: /steak|beef|burger|bbq|barbecue|grill/,
+      pasta: /pasta|spaghetti|italian food|risotto/,
+      celebration: /celebrat|birthday|anniversary|toast|special occasion|milestone/,
+      weeknight: /weeknight|tuesday|casual|everyday|nothing fancy|cheap/,
+      richdish: /chicken|cream|roast|butter|rich (dish|food)/,
+      gift: /gift|present|bring (a bottle|something)|hostess/
+    };
+    const occasionKeys = Object.keys(OCC_KEYWORDS).filter(function (k) { return OCC_KEYWORDS[k].test(s); });
+    const stop = /^(a|an|the|with|for|and|or|something|light|nice|good|bottle|wine|of|to|open|tonight|please)$/;
+    const terms = q.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(function (t) { return t.length > 2 && !stop.test(t); });
+    return { maxPrice: maxPrice, minPrice: minPrice, color: color, wantsSparkling: wantsSparkling, occasionKeys: occasionKeys, terms: terms };
+  }
+
+  scoreForQuery(w, parsed) {
+    const self = this;
+    let n = 0;
+    if (parsed.occasionKeys.length) {
+      n += parsed.occasionKeys.reduce(function (a, k) { return a + self.score(w, k); }, 0) / parsed.occasionKeys.length;
+    }
+    if (parsed.color && w.color === parsed.color) n += 4;
+    if (parsed.color && w.color !== parsed.color) n -= 3;
+    if (parsed.wantsSparkling && w.sparkling) n += 5;
+    if (parsed.wantsSparkling && !w.sparkling) n -= 4;
+    if (parsed.maxPrice != null) n += w.cost <= parsed.maxPrice ? 3 : -4;
+    if (parsed.minPrice != null) n += w.cost >= parsed.minPrice ? 3 : -4;
+    const hay = (w.name + " " + w.region + " " + w.grape + " " + w.country + " " + w.notes).toLowerCase();
+    parsed.terms.forEach(function (t) { if (hay.indexOf(t) >= 0) n += 3; });
+    return n;
+  }
+
+  picksForQuery(query) {
+    const self = this;
+    const parsed = this.parseSommelierQuery(query);
+    return this.all()
+      .filter(function (w) { return self.remaining(w) > 0; })
+      .map(function (w) { return { w: w, n: self.scoreForQuery(w, parsed) }; })
+      .filter(function (x) { return x.n > 0; })
+      .sort(function (a, b) { return b.n - a.n; })
+      .slice(0, 3)
+      .map(function (x) { return x.w; });
+  }
+
   picksFor(occ) {
     const self = this;
     return this.all()
@@ -882,16 +973,36 @@ class Component extends DCLogic {
   }
 
   /* log[w.id] is a history array — every tasting stays on record, so a
-     wine opened more than once shows an average rating, not just the last. */
+     wine opened more than once shows an average rating, not just the last.
+     When editingRatingFor matches w.id, this corrects the most recent
+     tasting in place instead of logging a new one (no change to consumed). */
   confirmFinish() {
     const w = this.state.target;
     if (!w) return;
     const log = Object.assign({}, this.state.log);
-    const entries = (log[w.id] || []).concat([{ at: Date.now(), rating: this.state.draftRating, note: this.state.draftNote.trim() }]);
+    const entries = (log[w.id] || []).slice();
+    if (this.state.editingRatingFor === w.id && entries.length) {
+      entries[entries.length - 1] = { at: entries[entries.length - 1].at, rating: this.state.draftRating, note: this.state.draftNote.trim() };
+      log[w.id] = entries;
+      this.persist({ log: log, modal: null, target: null, editingRatingFor: null, draftRating: 0, draftNote: "" });
+      return;
+    }
+    entries.push({ at: Date.now(), rating: this.state.draftRating, note: this.state.draftNote.trim() });
     log[w.id] = entries;
     const consumed = Object.assign({}, this.state.consumed);
     consumed[w.id] = (consumed[w.id] || 0) + 1;
-    this.persist({ log: log, consumed: consumed, modal: null, target: null, draftRating: 0, draftNote: "" });
+    this.persist({ log: log, consumed: consumed, modal: null, target: null, editingRatingFor: null, draftRating: 0, draftNote: "" });
+  }
+
+  /* Open the rate/note modal pre-filled with the most recent tasting for w,
+     in "correct it in place" mode rather than "log a new pour" mode. */
+  openRatingEdit(w) {
+    const entries = this.state.log[w.id] || [];
+    const last = entries.length ? entries[entries.length - 1] : null;
+    this.setState({
+      modal: "finish", target: w, editingRatingFor: w.id,
+      draftRating: last ? last.rating : 0, draftNote: last ? last.note : ""
+    });
   }
 
   /* Un-drink the most recently logged bottle of w: give one back to the
@@ -950,7 +1061,7 @@ class Component extends DCLogic {
     });
 
     /* chips */
-    const typeChips = ["All", "Still white", "Sparkling", "Rosé"].map(function (t) {
+    const typeChips = ["All", "Still white", "Red", "Sparkling", "Rosé"].map(function (t) {
       const c = self.chip(st.type === t);
       return { label: t, bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ type: t }); } };
     });
@@ -970,16 +1081,14 @@ class Component extends DCLogic {
         };
       });
 
-    let metaChips = ["Under $40", "$40–100", "Over $100"].map(function (p) {
+    const priceChips = ["Under $40", "$40–100", "Over $100"].map(function (p) {
       const c = self.chip(st.price === p);
       return { label: p, bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ price: st.price === p ? "All" : p }); } };
     });
-    if (!inCellar) {
-      metaChips = metaChips.concat([4, 5].map(function (n) {
-        const c = self.chip(st.minRating === n, true);
-        return { label: n + "★ and up", bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ minRating: st.minRating === n ? 0 : n }); } };
-      }));
-    }
+    const ratingChips = !inCellar ? [4, 5].map(function (n) {
+      const c = self.chip(st.minRating === n, true);
+      return { label: n + "★ and up", bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ minRating: st.minRating === n ? 0 : n }); } };
+    }) : [];
 
     /* cards */
     const items = list.map(function (w) {
@@ -1023,9 +1132,12 @@ class Component extends DCLogic {
         statusColor: statusMeta ? statusMeta.color : "",
         onEdit: function () { self.openEdit(w); },
         hasInventoryActions: true,
+        showBump: inCellar,
         canBumpDown: rem > 0,
         onBump: function () { self.bumpQty(w, 1); },
         onBumpDown: function () { self.bumpQty(w, -1); },
+        canEditRating: !inCellar && stats.count > 0,
+        onEditRating: function () { self.openRatingEdit(w); },
         actionLabel: inCellar ? "Open" : "Restore",
         actionBg: inCellar ? "var(--color-accent)" : "transparent",
         actionFg: inCellar ? "var(--color-accent-100)" : "var(--color-accent-700)",
@@ -1044,16 +1156,31 @@ class Component extends DCLogic {
       return { label: o.label, bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ occasion: o.key }); } };
     });
     const occ = OCCASIONS.filter(function (o) { return o.key === st.occasion; })[0] || OCCASIONS[0];
-    const picks = st.modal === "suggest" ? this.picksFor(st.occasion).map(function (w, i) {
+    const hasQuery = st.modal === "suggest" && st.sommelierQuery.trim().length > 0;
+    const parsedQuery = hasQuery ? this.parseSommelierQuery(st.sommelierQuery) : null;
+    const whyForQuery = function (w) {
+      const bits = [];
+      if (parsedQuery.occasionKeys.length) bits.push(parsedQuery.occasionKeys.join("/"));
+      if (parsedQuery.color) bits.push(parsedQuery.color);
+      if (parsedQuery.wantsSparkling) bits.push("sparkling");
+      if (parsedQuery.maxPrice != null) bits.push("under $" + parsedQuery.maxPrice);
+      if (parsedQuery.minPrice != null) bits.push("over $" + parsedQuery.minPrice);
+      const hay = (w.name + " " + w.region + " " + w.grape).toLowerCase();
+      parsedQuery.terms.forEach(function (t) { if (hay.indexOf(t) >= 0 && bits.indexOf(t) < 0) bits.push(t); });
+      return bits.length ? "Matches: " + bits.join(", ") : "Closest match in the cellar.";
+    };
+    const picksSource = hasQuery ? this.picksForQuery(st.sommelierQuery) : (st.modal === "suggest" ? this.picksFor(st.occasion) : []);
+    const picks = picksSource.map(function (w, i) {
       return {
         rank: ["FIRST", "THEN", "OR"][i] || "OR",
         name: w.name,
         meta: [w.vintage === "n/a" ? "NV" : w.vintage, w.region, w.grape].filter(Boolean).join(" · "),
         price: w.cost === 0 ? "gift" : "$" + w.cost,
-        why: occ.why,
+        why: hasQuery ? whyForQuery(w) : occ.why,
         onOpen: function () { self.setState({ modal: "finish", target: w, draftRating: 0, draftNote: "" }); }
       };
-    }) : [];
+    });
+    const hasNoPicks = hasQuery && picks.length === 0;
 
     const leaderboardItems = st.modal === "leaderboard" ? this.leaderboardList().map(function (w, idx) {
       const stats = self.ratingStats(w);
@@ -1138,7 +1265,9 @@ class Component extends DCLogic {
       onQuery: function (e) { self.setState({ query: e.target.value }); },
       typeChips: typeChips,
       regionChips: regionChips,
-      metaChips: metaChips,
+      priceChips: priceChips,
+      ratingChips: ratingChips,
+      hasRatingChips: ratingChips.length > 0,
       hasFilters: !!(st.query || st.type !== "All" || st.regions.length || st.price !== "All" || st.minRating),
       onClearFilters: function () { self.setState({ query: "", type: "All", regions: [], price: "All", minRating: 0 }); },
       resultLine: (function () {
@@ -1151,7 +1280,7 @@ class Component extends DCLogic {
       showEmpty: list.length === 0,
       emptyTitle: inCellar ? "Nothing matches" : "Nothing logged yet",
       emptyBody: inCellar ? "Loosen a filter, or add the bottle you just bought." : "Open a bottle and rate it; it lands here.",
-      onSuggest: function () { self.setState({ modal: "suggest" }); },
+      onSuggest: function () { self.setState({ modal: "suggest", sommelierQuery: "" }); },
       onOpenLeaderboard: function () { self.setState({ modal: "leaderboard" }); },
       showDashboard: true,
       dashBottles: totalBottles + "",
@@ -1168,7 +1297,7 @@ class Component extends DCLogic {
       leaderboardEmpty: leaderboardItems.length === 0,
       isLeaderboardModal: st.modal === "leaderboard",
       onAdd: function () { self.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "" }); },
-      onCloseModal: function () { self.setState({ modal: null, target: null, editingId: null }); },
+      onCloseModal: function () { self.setState({ modal: null, target: null, editingId: null, editingRatingFor: null, sommelierQuery: "" }); },
       stop: function (e) { e.stopPropagation(); },
       modalOpen: !!st.modal,
       isSuggest: st.modal === "suggest",
@@ -1177,13 +1306,19 @@ class Component extends DCLogic {
       modalTitle: st.modal === "suggest" ? "What are we drinking?"
         : st.modal === "add" ? (st.editingId != null ? "Edit bottle" : "New bottle")
         : st.modal === "leaderboard" ? "Leaderboard"
+        : st.modal === "finish" && st.editingRatingFor != null ? "Edit rating"
         : "Opened",
       modalSub: st.modal === "suggest" ? "Pick the occasion; the cellar narrows itself."
         : st.modal === "add" ? (st.editingId != null ? "Update the details, including how many bottles you have." : "Added to the cellar straight away.")
         : st.modal === "leaderboard" ? "Every wine you've rated, ranked by average score."
+        : st.modal === "finish" && st.editingRatingFor != null ? "Correcting the most recent tasting for this wine."
         : "Rate it now while it's in the glass.",
+      confirmFinishLabel: st.editingRatingFor != null ? "Save rating" : "Log as finished",
       occasions: occasions,
       picks: picks,
+      hasNoPicks: hasNoPicks,
+      sommelierQuery: st.sommelierQuery,
+      onSommelierQuery: function (e) { self.setState({ sommelierQuery: e.target.value }); },
       finishName: target ? target.name : "",
       finishMeta: target ? [target.vintage === "n/a" ? "NV" : target.vintage, target.region, target.grape].filter(Boolean).join(" · ") : "",
       starButtons: starButtons,
