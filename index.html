@@ -132,9 +132,18 @@
                   <sc-if value="{{ w.hasStars }}" hint-placeholder-val="{{ false }}">
                     <span style="font-size: 13px; color: var(--color-accent-600); letter-spacing: 0.08em;">{{ w.stars }}</span>
                   </sc-if>
+                  <sc-if value="{{ w.hasRatedCount }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size: 11px; color: var(--color-neutral-600);">{{ w.ratedCountLabel }}</span>
+                  </sc-if>
+                  <sc-if value="{{ w.hasDrunk }}" hint-placeholder-val="{{ false }}">
+                    <span style="border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--color-neutral-700); border: 1px solid var(--color-divider);">{{ w.drunkLabel }}</span>
+                  </sc-if>
                 </div>
                 <button type="button" onClick="{{ w.onEdit }}" title="Edit details" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 13px; font-size: 12.5px; font-weight: 600; color: var(--color-neutral-700); flex: none;">Edit</button>
-                <button type="button" onClick="{{ w.onAction }}" style="border: 0; cursor: pointer; border-radius: 999px; padding: 9px 15px; font-size: 12.5px; font-family: var(--font-heading); background: {{ w.actionBg }}; color: {{ w.actionFg }}; flex: none;">{{ w.actionLabel }}</button>
+                <sc-if value="{{ w.hasInventoryActions }}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{ w.onBump }}" title="Bought another bottle" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 12px; font-size: 12.5px; font-weight: 700; color: var(--color-neutral-700); flex: none;">+1</button>
+                  <button type="button" onClick="{{ w.onAction }}" style="border: 0; cursor: pointer; border-radius: 999px; padding: 9px 15px; font-size: 12.5px; font-family: var(--font-heading); background: {{ w.actionBg }}; color: {{ w.actionFg }}; flex: none;">{{ w.actionLabel }}</button>
+                </sc-if>
               </div>
             </article>
           </sc-for>
@@ -209,10 +218,19 @@
 
         <sc-if value="{{ isAdd }}" hint-placeholder-val="{{ false }}">
           <div style="display: flex; flex-direction: column; gap: var(--space-3);">
-            <sc-for list="{{ addFields }}" as="f" hint-placeholder-count="6">
+            <sc-for list="{{ addFields }}" as="f" hint-placeholder-count="10">
               <label style="display: block;">
                 <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 5px;">{{ f.label }}</div>
-                <input value="{{ f.value }}" onInput="{{ f.onInput }}" placeholder="{{ f.placeholder }}" inputmode="{{ f.mode }}" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 15px; color: var(--color-text); font-family: inherit;">
+                <sc-if value="{{ f.isSelect }}" hint-placeholder-val="{{ false }}">
+                  <select value="{{ f.value }}" onChange="{{ f.onInput }}" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 15px; color: var(--color-text); font-family: inherit; appearance: auto;">
+                    <sc-for list="{{ f.options }}" as="opt" hint-placeholder-count="6">
+                      <option value="{{ opt.value }}">{{ opt.label }}</option>
+                    </sc-for>
+                  </select>
+                </sc-if>
+                <sc-if value="{{ f.isText }}" hint-placeholder-val="{{ true }}">
+                  <input value="{{ f.value }}" onInput="{{ f.onInput }}" placeholder="{{ f.placeholder }}" inputmode="{{ f.mode }}" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 15px; color: var(--color-text); font-family: inherit;">
+                </sc-if>
               </label>
             </sc-for>
 
@@ -240,7 +258,7 @@
 
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:900}}">
-const KEY = "mcnamara-cellar-v2";
+const KEY = "mcnamara-cellar-v3";
 
 /* Cellar inventory — mirrored in wines.json.
    Row shape: [id, qty, vintage, name, color, country, region, grape, cost, notes] */
@@ -302,7 +320,7 @@ const RAW = [
   [58,1,"2022","Paul Benoit Les Cents Vignes Premier Cru","red","France","Burgundy","pinot noir",60,"costco"],
   [59,1,"2019","Bouchard Nuits Saint-Georges","red","France","Burgundy","pinot noir",58,""],
   [60,2,"2022","Captain-Gagnerot Savigny-les-Beaune 1er cru \"Les Charm\"","red","France","Burgundy","pinot noir",54,""],
-  [61,1,"2018","La Pousse d'OR Clos de Tavannes Santenay 1er Cru","red","FRance","Burgundy","pinot noir",81,""],
+  [61,1,"2018","La Pousse d'OR Clos de Tavannes Santenay 1er Cru","red","France","Burgundy","pinot noir",81,""],
   [62,1,"2022","Danjean Berthoux Givry 1er Cru \"Clos du Cras Long\"","red","France","Burgundy","pinot noir",50,""],
   [63,0,"2020","Maison Shaps Volnay","red","France","Burgundy","pinot noir",48,""],
   [64,4,"2020","Jaffelin Monthelie Taupine 1er cru","red","France","Burgundy","pinot noir",45,""],
@@ -318,7 +336,7 @@ const RAW = [
   [75,1,"1989","Chateau Leoville Barton st Julien","red","France","Bordeaux","Cab sauv/merlot",219,"Jason"],
   [76,6,"2005","Chateau Lagrange St. Julien","red","France","Bordeaux","Cab. Sauv/merlot",153,""],
   [77,2,"2015","Chateau Pontet-Canet Pauillac Grand Cru Classe","red","France","Pauillac","Cab. Sauv/merlot",144,""],
-  [78,1,"2016","Manoncourt Petit Figeac Grand Cru","red","France","St Emilion","Cab. Franc/Cab. Sauv/Merl",120,""],
+  [78,1,"2016","Manoncourt Petit Figeac Grand Cru","red","France","St. Emilion","Cab. Franc/Cab. Sauv/Merl",120,""],
   [79,3,"2016","Chateau LaGrange St Emilion","red","France","Bordeaux","Cab. Sauv/merlot",108,""],
   [80,4,"2016","Chateau Giscours Margaux","red","France","Bordeaux","Cab Sauv/merlot",108,""],
   [81,5,"2016","Langoa Barton St-Julien","red","France","Bordeaux","CabS/Merlot/CabF",90,""],
@@ -331,7 +349,7 @@ const RAW = [
   [88,3,"2018","D'Aiguilhe Comtes Von Neipperg","red","France","Bordeaux","merlot/cab. franc",35,""],
   [89,3,"2018","Chateau La Cardonne Medoc","red","France","Bordeaux","Cab.Sauv/merlot/petit verdo",27,""],
   [90,4,"2018","Chateau Haut Barrail Medoc","red","France","Bordeaux","merlot/cab sauvignon",22,""],
-  [91,1,"2020","Chateau Boutisse grand cru","red","France","St Emilion","merlot/cab sauvignon",40,"gift from Nikita"],
+  [91,1,"2020","Chateau Boutisse grand cru","red","France","St. Emilion","merlot/cab sauvignon",40,"gift from Nikita"],
   [92,1,"2020","Chateau Cormeil-Figeac grand cru","red","France","St. Emilion","merlot/cab franc",29,"costco"],
   [93,0,"2020","Roche-Guillon Fleurie","red","France","Beaujolais","gamay",28,""],
   [94,1,"2022","Notre Dame des Pallieres gigondas les Mourres","red","France","Rhone","grenache/syrah/mourvedre",27,"near CDP"],
@@ -351,14 +369,14 @@ const RAW = [
   [109,1,"2021","tignanello","red","Italy","Tuscany","Sangiovese/CabS/CabF",156,""],
   [110,1,"2019","Montepo Maceone","red","Italy","Tuscany","Sangiovese",152,""],
   [111,3,"2019","Mantepo Poggio Ferro","red","Italy","Tuscany","Sangiovese",152,""],
-  [112,1,"2019","Mantepo Fontecanese","red","Italy","tuscany","Cabernet Sauvignon",152,""],
+  [112,1,"2019","Mantepo Fontecanese","red","Italy","Tuscany","Cabernet Sauvignon",152,""],
   [113,1,"2019","Borgogno Barolo Cannubi","red","Italy","Piedmont","Nebbiolo",143,""],
   [114,1,"2022","Guado al Tasso","red","Italy","Tuscany","CabS/CabF/Merlot",134,""],
   [115,2,"2020","Oddero Barolo Villero","red","Italy","Piedmont","Nebbiolo",117,""],
   [116,0,"2020","Marroneto Brunello","red","Italy","Tuscany","Sangiovese",126,""],
   [117,1,"2016","Masi Mazzano Amarone Classico","red","Italy","Veneto","Corvina",119,""],
   [118,6,"2021","Oddero Barolo Villero","red","Italy","Piedmont","Nebbiolo",117,""],
-  [119,2,"2021","Pupille Saffredi","red","ITALY","tuscany","CabS?Merlot",117,""],
+  [119,2,"2021","Pupille Saffredi","red","Italy","Tuscany","CabS?Merlot",117,""],
   [120,2,"2021","Elio Grasso Barolo Ginestra Casa Mate","red","Italy","Piedmont","Nebbiolo",100,""],
   [121,4,"2021","Roccheviberti Barolo \"Rocche di Castiglione\"","red","Italy","Piedmont","Nebbiolo",99,""],
   [122,1,"2021","Michele Chiarlo Barbaresco Asili","red","Italy","Piedmont","Nebbiolo",96,""],
@@ -410,7 +428,7 @@ const RAW = [
   [169,6,"2019","Quinta Sardonia Sardon De Duero","red","Spain","Ribera","Tempranillo",54,""],
   [170,4,"2016","Jesus Yllera","red","Spain","Ribera","cab. s/merlot/tempranillo",26,""],
   [171,3,"2022","Finca La Mata","red","Spain","Ribera","Tempranillo",23,""],
-  [172,1,"2021","Teso la Monja Romanico","red","Spain","valdefinjas","tinta del toro",19,""],
+  [172,1,"2021","Teso la Monja Romanico","red","Spain","Valdefinjas","tinta del toro",19,""],
   [173,3,"2024","Soto Del Vicario Go de Godello","white","Spain","Bierzo","Godello",17,""],
   [174,1,"2020","San Pedro Cabo de Hornos","red","Chile","Cachapoal","Cabernet",65,"Bought in Santiago"],
   [175,1,"2019","Salentein \"Las Tunas\"","red","Argentina","Mendoza","Malbec",55,"bought in B.A./ Barolo?"],
@@ -429,6 +447,8 @@ const RAW = [
 const OCCASIONS = [
   { key: "aperitivo", label: "Aperitivo", why: "Light-bodied and bright — right for the first glass, before food." },
   { key: "seafood", label: "Oysters & seafood", why: "Saline and taut. Cuts shellfish without covering it." },
+  { key: "steak", label: "Steak", why: "Tannin and structure to stand up to a char and cut through the fat." },
+  { key: "pasta", label: "Pasta", why: "Italian, food-friendly acidity — built for the table, not the glass alone." },
   { key: "celebration", label: "Celebration", why: "One of the cellar's serious bottles. Worth the occasion." },
   { key: "weeknight", label: "Weeknight", why: "Everyday value — nothing lost by drinking it tonight." },
   { key: "richdish", label: "Roast chicken & cream", why: "Weight and oak enough to stand up to butter and fat." },
@@ -438,6 +458,26 @@ const OCCASIONS = [
 const RATING_WORDS = ["Tap a star", "Corked or flat", "Fine, not memorable", "Solid — would pour again", "Excellent bottle", "Cellar benchmark"];
 
 const STYLE_OPTIONS = ["White", "Rosé", "Red", "Sparkling"];
+
+/* Curated so entries stay consistent (no "FRance"/"ITALY" typos) — most-common
+   countries in the current cellar first, other major wine countries after. */
+const COUNTRY_OPTIONS = [
+  "France", "Italy", "Spain", "USA", "Argentina", "Chile",
+  "Portugal", "Germany", "Austria", "Australia", "New Zealand", "South Africa"
+];
+
+/* Regions the cellar already has, one list per country — keeps the region
+   picker from offering (or accepting) an appellation for the wrong country.
+   Countries with no entries yet just fall back to free text below. */
+const REGIONS_BY_COUNTRY = {
+  France: ["Beaujolais", "Bordeaux", "Burgundy", "Catalanes", "CDP", "Champagne", "Limoux", "Loire", "Pauillac", "Provence", "Rhone", "St. Emilion"],
+  Italy: ["Campania", "Etna", "Liguria", "Offida", "Piedmont", "Sardinia", "Tuscany", "Umbria", "Veneto"],
+  Spain: ["Bierzo", "Priorat", "Ribera", "Rioja", "Valdefinjas"],
+  USA: ["N. Carolina", "Napa", "Oregon", "Sonoma/Napa"],
+  Argentina: ["Mendoza"],
+  Chile: ["Cachapoal"]
+};
+const OTHER_REGION = "Other…";
 
 function styleOf(color, sparkling) {
   if (sparkling && color === "rose") return "Sparkling rosé";
@@ -468,11 +508,14 @@ function loadStore() {
   try {
     const raw = window.localStorage.getItem(KEY);
     const s = raw ? JSON.parse(raw) : {};
-    return { log: s.log || {}, added: s.added || [], consumed: s.consumed || {}, overrides: s.overrides || {} };
-  } catch (e) { return { log: {}, added: [], consumed: {}, overrides: {} }; }
+    return {
+      log: s.log || {}, added: s.added || [], consumed: s.consumed || {},
+      overrides: s.overrides || {}, baseline: s.baseline || {}
+    };
+  } catch (e) { return { log: {}, added: [], consumed: {}, overrides: {}, baseline: {} }; }
 }
 
-const EMPTY_DRAFT = { name: "", vintage: "", region: "", country: "", grape: "", cost: "", notes: "", style: "White", qty: "1" };
+const EMPTY_DRAFT = { name: "", vintage: "", region: "", regionOther: "", country: "", grape: "", cost: "", notes: "", style: "White", qty: "1", baseline: "0" };
 
 class Component extends DCLogic {
   state = (function () {
@@ -481,7 +524,8 @@ class Component extends DCLogic {
       tab: "cellar", query: "", type: "All", regions: [], price: "All", minRating: 0,
       sort: "price", modal: null, target: null, occasion: "aperitivo", editingId: null,
       draftRating: 0, draftNote: "", draft: Object.assign({}, EMPTY_DRAFT),
-      addHint: "", log: s.log, added: s.added, consumed: s.consumed, overrides: s.overrides
+      addHint: "", log: s.log, added: s.added, consumed: s.consumed, overrides: s.overrides,
+      baseline: s.baseline
     };
   })();
 
@@ -518,7 +562,8 @@ class Component extends DCLogic {
       log: patch.log || this.state.log,
       added: patch.added || this.state.added,
       consumed: patch.consumed || this.state.consumed,
-      overrides: patch.overrides || this.state.overrides
+      overrides: patch.overrides || this.state.overrides,
+      baseline: patch.baseline || this.state.baseline
     };
     try { window.localStorage.setItem(KEY, JSON.stringify(next)); } catch (e) {}
   }
@@ -527,6 +572,28 @@ class Component extends DCLogic {
      finished through the app since import, floored at 0. */
   remaining(w) {
     return Math.max(0, w.qty - (this.state.consumed[w.id] || 0));
+  }
+
+  /* Average + count across every tasting logged for w (unrated opens, i.e.
+     rating 0, count toward "times opened" elsewhere but not the average). */
+  ratingStats(w) {
+    const entries = (this.state.log[w.id] || []).filter(function (e) { return e.rating > 0; });
+    const count = entries.length;
+    const avg = count ? entries.reduce(function (a, e) { return a + e.rating; }, 0) / count : 0;
+    return { avg: avg, count: count };
+  }
+
+  /* Total bottles ever finished: pre-app history you backfilled, plus
+     whatever's been logged as finished through the app since. */
+  totalFinished(w) {
+    return (this.state.baseline[w.id] || 0) + (this.state.consumed[w.id] || 0);
+  }
+
+  bumpQty(w, delta) {
+    const overrides = Object.assign({}, this.state.overrides);
+    const prev = overrides[w.id] || {};
+    overrides[w.id] = Object.assign({}, prev, { qty: Math.max(0, w.qty + delta) });
+    this.persist({ overrides: overrides });
   }
 
   all() {
@@ -561,19 +628,36 @@ class Component extends DCLogic {
   visible() {
     const self = this, log = this.state.log;
     const inCellar = this.state.tab === "cellar";
+    const lastAt = function (w) { const e = log[w.id]; return e && e.length ? e[e.length - 1].at : 0; };
     let list = this.all().filter(function (w) {
       const rem = self.remaining(w);
       if (inCellar ? rem <= 0 : rem > 0) return false;
-      if (!inCellar && ((log[w.id] && log[w.id].rating) || 0) < self.state.minRating) return false;
+      if (!inCellar && self.ratingStats(w).avg < self.state.minRating) return false;
       return self.matches(w);
     });
-    if (!inCellar) return list.sort(function (a, b) { return ((log[b.id] && log[b.id].at) || 0) - ((log[a.id] && log[a.id].at) || 0); });
+    if (!inCellar) return list.sort(function (a, b) { return lastAt(b) - lastAt(a); });
     const s = this.state.sort;
     return list.sort(function (a, b) {
       if (s === "price") return b.cost - a.cost;
       if (s === "name") return a.name.localeCompare(b.name);
       return String(b.vintage).localeCompare(String(a.vintage));
     });
+  }
+
+  /* All wines with at least one real rating, ranked highest average first
+     (ties broken by how many times rated, then name). Respects the same
+     search/type/region/price/rating filters as the other tabs. */
+  leaderboardList() {
+    const self = this;
+    return this.all()
+      .filter(function (w) { return self.ratingStats(w).count > 0 && self.matches(w); })
+      .filter(function (w) { return self.ratingStats(w).avg >= self.state.minRating; })
+      .sort(function (a, b) {
+        const sa = self.ratingStats(a), sb = self.ratingStats(b);
+        if (sb.avg !== sa.avg) return sb.avg - sa.avg;
+        if (sb.count !== sa.count) return sb.count - sa.count;
+        return a.name.localeCompare(b.name);
+      });
   }
 
   /* ── pairing ───────────────────────────────────────────── */
@@ -593,6 +677,23 @@ class Component extends DCLogic {
       if (/blanc de blancs/.test(w.name.toLowerCase())) n += 4;
       if (/macon|pouilly/.test(w.name.toLowerCase())) n += 2;
       if (c < 60) n += 1;
+    } else if (occ === "steak") {
+      if (w.color !== "red") n -= 6;
+      if (/cabernet|cab\.?\s*sauv|bordeaux blend/.test(g)) n += 5;
+      if (/nebbiolo/.test(g)) n += 4;
+      if (/syrah|shiraz/.test(g)) n += 4;
+      if (/sangiovese/.test(g) && c >= 50) n += 3;
+      if (/barolo|barbaresco|brunello|napa|pauillac|st[\.\-]?\s*julien|margaux|st[\.\-]?\s*emilion/i.test(w.name + " " + r)) n += 3;
+      if (/gamay|pinot noir/.test(g) && c < 50) n -= 3;
+      if (w.sparkling) n -= 5;
+    } else if (occ === "pasta") {
+      if (w.country === "Italy") n += 4;
+      if (/sangiovese/.test(g)) n += 4;
+      if (/nebbiolo|barbera/.test(g)) n += 3;
+      if (/vermentino|pecorino|erbaluce/.test(g)) n += 2;
+      if (c > 0 && c <= 45) n += 2;
+      if (c > 100) n -= 3;
+      if (w.sparkling) n -= 2;
     } else if (occ === "celebration") {
       n += Math.min(6, c / 45);
       if (/champagne/.test(r)) n += 4;
@@ -640,54 +741,69 @@ class Component extends DCLogic {
     const d = this.state.draft;
     if (!d.name.trim()) { this.setState({ addHint: "A producer or bottle name is required." }); return; }
     const n = parseInt(d.qty, 10);
+    const b = parseInt(d.baseline, 10);
+    const baselineN = isNaN(b) ? 0 : Math.max(0, b);
+    const region = d.region === OTHER_REGION ? d.regionOther : d.region;
     const rec = {
       name: d.name.trim(), vintage: d.vintage.trim() || "n/a",
-      region: d.region.trim() || "Unfiled", country: d.country.trim(),
+      region: region.trim() || "Unfiled", country: d.country.trim(),
       grape: d.grape.trim(), cost: Number(String(d.cost).replace(/[^0-9.]/g, "")) || 0,
       notes: d.notes.trim(),
       color: d.style === "Rosé" ? "rose" : d.style === "Red" ? "red" : "white",
       sparkling: d.style === "Sparkling",
       qty: isNaN(n) ? 1 : Math.max(0, n)
     };
+    const baseline = Object.assign({}, this.state.baseline);
     if (this.state.editingId != null) {
       const overrides = Object.assign({}, this.state.overrides);
       overrides[this.state.editingId] = rec;
-      this.persist({ overrides: overrides, modal: null, editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "" });
+      if (baselineN > 0) baseline[this.state.editingId] = baselineN; else delete baseline[this.state.editingId];
+      this.persist({ overrides: overrides, baseline: baseline, modal: null, editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "" });
     } else {
-      const rec2 = Object.assign({ id: "new-" + Date.now(), added: true }, rec);
-      this.persist({ added: this.state.added.concat([rec2]), modal: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "", tab: "cellar" });
+      const newId = "new-" + Date.now();
+      const rec2 = Object.assign({ id: newId, added: true }, rec);
+      if (baselineN > 0) baseline[newId] = baselineN;
+      this.persist({ added: this.state.added.concat([rec2]), baseline: baseline, modal: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "", tab: "cellar" });
     }
   }
 
+  /* log[w.id] is a history array — every tasting stays on record, so a
+     wine opened more than once shows an average rating, not just the last. */
   confirmFinish() {
     const w = this.state.target;
     if (!w) return;
     const log = Object.assign({}, this.state.log);
-    log[w.id] = { at: Date.now(), rating: this.state.draftRating, note: this.state.draftNote.trim() };
+    const entries = (log[w.id] || []).concat([{ at: Date.now(), rating: this.state.draftRating, note: this.state.draftNote.trim() }]);
+    log[w.id] = entries;
     const consumed = Object.assign({}, this.state.consumed);
     consumed[w.id] = (consumed[w.id] || 0) + 1;
     this.persist({ log: log, consumed: consumed, modal: null, target: null, draftRating: 0, draftNote: "" });
   }
 
   /* Un-drink the most recently logged bottle of w: give one back to the
-     cellar and drop the tasting note that went with it. */
+     cellar and drop the tasting note/rating that went with it. */
   unfinish(w) {
     const consumed = Object.assign({}, this.state.consumed);
     const cur = Math.max(0, (consumed[w.id] || 0) - 1);
     if (cur > 0) consumed[w.id] = cur; else delete consumed[w.id];
     const log = Object.assign({}, this.state.log);
-    delete log[w.id];
+    const entries = (log[w.id] || []).slice(0, -1);
+    if (entries.length) log[w.id] = entries; else delete log[w.id];
     this.persist({ consumed: consumed, log: log });
   }
 
   openEdit(w) {
+    const region = w.region === "Unfiled" ? "" : w.region;
+    const knownRegions = REGIONS_BY_COUNTRY[w.country] || [];
+    const isKnown = !region || knownRegions.indexOf(region) >= 0;
     this.setState({
       modal: "add", editingId: w.id, addHint: "",
       draft: {
         name: w.name, vintage: w.vintage === "n/a" ? "" : w.vintage,
-        region: w.region === "Unfiled" ? "" : w.region, country: w.country,
-        grape: w.grape, cost: String(w.cost), notes: w.notes,
-        style: styleOf(w.color, w.sparkling), qty: String(w.qty)
+        region: isKnown ? region : OTHER_REGION, regionOther: isKnown ? "" : region,
+        country: w.country, grape: w.grape, cost: String(w.cost), notes: w.notes,
+        style: styleOf(w.color, w.sparkling), qty: String(w.qty),
+        baseline: String(this.state.baseline[w.id] || 0)
       }
     });
   }
@@ -696,15 +812,20 @@ class Component extends DCLogic {
     const self = this, st = this.state, log = st.log;
     const all = this.all();
     const inCellar = st.tab === "cellar";
+    const isLeaderboard = st.tab === "leaderboard";
     const inStock = all.filter(function (w) { return self.remaining(w) > 0; });
-    const list = this.visible();
+    const list = isLeaderboard ? this.leaderboardList() : this.visible();
 
     const totalBottles = inStock.reduce(function (a, w) { return a + self.remaining(w); }, 0);
     const value = inStock.reduce(function (a, w) { return a + self.remaining(w) * w.cost; }, 0);
     const finishedCount = all.length - inStock.length;
 
     /* tabs */
-    const tabs = [["cellar", "In the cellar (" + inStock.length + ")"], ["archive", "Finished (" + finishedCount + ")"]].map(function (t) {
+    const tabs = [
+      ["cellar", "In the cellar (" + inStock.length + ")"],
+      ["archive", "Finished (" + finishedCount + ")"],
+      ["leaderboard", "Leaderboard"]
+    ].map(function (t) {
       const on = st.tab === t[0];
       return {
         label: t[1], onClick: function () { self.setState({ tab: t[0] }); },
@@ -747,18 +868,21 @@ class Component extends DCLogic {
     }
 
     /* cards */
-    const items = list.map(function (w) {
-      const entry = log[w.id];
-      const rating = entry ? entry.rating || 0 : 0;
+    const items = list.map(function (w, idx) {
+      const entries = log[w.id] || [];
+      const stats = self.ratingStats(w);
+      const rating = Math.round(stats.avg);
       const sparkling = w.sparkling;
       const rose = w.color === "rose";
-      const noteText = entry && entry.note ? entry.note : w.note;
+      const lastEntry = entries.length ? entries[entries.length - 1] : null;
+      const noteText = lastEntry && lastEntry.note ? lastEntry.note : w.note;
       const rem = self.remaining(w);
+      const totalDrunk = self.totalFinished(w);
       return {
         name: w.name,
         meta: [w.region, w.grape].filter(Boolean).join(" · "),
         price: w.cost === 0 ? "gift" : "$" + w.cost,
-        vintageShort: w.vintage === "n/a" ? "NV" : w.vintage.slice(0, 4),
+        vintageShort: isLeaderboard ? "#" + (idx + 1) : (w.vintage === "n/a" ? "NV" : w.vintage.slice(0, 4)),
         style: (w.added ? w.style + " · new" : w.style) + (rem > 1 ? " · ×" + rem : ""),
         discBg: sparkling ? "var(--color-accent-200)" : rose ? "var(--color-accent-300)" : "var(--color-accent-2-200)",
         discFg: sparkling ? "var(--color-accent-800)" : rose ? "var(--color-accent-900)" : "var(--color-accent-2-800)",
@@ -766,9 +890,15 @@ class Component extends DCLogic {
         tagFg: sparkling ? "var(--color-accent-800)" : rose ? "var(--color-accent-900)" : "var(--color-accent-2-800)",
         hasNote: !!noteText,
         note: noteText,
-        hasStars: rating > 0,
+        hasStars: stats.count > 0,
         stars: "★★★★★".slice(0, rating) + "☆☆☆☆☆".slice(0, 5 - rating),
+        hasRatedCount: stats.count > 1,
+        ratedCountLabel: "avg of " + stats.count,
+        hasDrunk: totalDrunk > 0,
+        drunkLabel: totalDrunk + " finished all-time",
         onEdit: function () { self.openEdit(w); },
+        hasInventoryActions: !isLeaderboard,
+        onBump: function () { self.bumpQty(w, 1); },
         actionLabel: inCellar ? "Open" : "Restore",
         actionBg: inCellar ? "var(--color-accent)" : "transparent",
         actionFg: inCellar ? "var(--color-accent-100)" : "var(--color-accent-700)",
@@ -778,7 +908,8 @@ class Component extends DCLogic {
       };
     });
 
-    const groups = items.length ? [{ title: inCellar ? "Bottles" : "Drunk & rated", count: items.length + "", items: items }] : [];
+    const groupTitle = isLeaderboard ? "Top rated" : inCellar ? "Bottles" : "Drunk & rated";
+    const groups = items.length ? [{ title: groupTitle, count: items.length + "", items: items }] : [];
 
     /* modal */
     const occasions = OCCASIONS.map(function (o) {
@@ -804,26 +935,45 @@ class Component extends DCLogic {
       };
     });
 
+    const regionOptions = REGIONS_BY_COUNTRY[st.draft.country] || [];
     const fieldDefs = [
       ["name", "Producer & cuvée", "Domaine Leflaive Puligny-Montrachet", "text"],
       ["vintage", "Vintage", "2022 — or leave blank for NV", "numeric"],
-      ["region", "Region / appellation", "Burgundy", "text"],
-      ["country", "Country", "France", "text"],
+      ["country", "Country", "France", "text", COUNTRY_OPTIONS],
+      ["region", "Region / appellation", "Burgundy", "text", regionOptions.length ? regionOptions.concat([OTHER_REGION]) : null],
       ["grape", "Grape", "Chardonnay", "text"],
       ["cost", "Cost", "68", "numeric"],
       ["qty", "Quantity", "How many bottles", "numeric"],
+      ["baseline", "Already finished (before this app)", "0", "numeric"],
       ["notes", "Note", "Where you bought it, who it's for", "text"]
     ];
     const addFields = fieldDefs.map(function (f) {
+      const selectValues = f[4];
       return {
         label: f[1], placeholder: f[2], mode: f[3], value: st.draft[f[0]] || "",
+        isSelect: !!selectValues, isText: !selectValues,
+        options: selectValues
+          ? [{ value: "", label: "Select…" }].concat(selectValues.map(function (v) { return { value: v, label: v }; }))
+          : [],
         onInput: function (e) {
           const d = Object.assign({}, st.draft);
           d[f[0]] = e.target.value;
+          if (f[0] === "country") { d.region = ""; d.regionOther = ""; }
           self.setState({ draft: d, addHint: "" });
         }
       };
     });
+    if (st.draft.region === OTHER_REGION) {
+      addFields.push({
+        label: "New region name", placeholder: "e.g. Alsace", mode: "text", value: st.draft.regionOther || "",
+        isSelect: false, isText: true, options: [],
+        onInput: function (e) {
+          const d = Object.assign({}, st.draft);
+          d.regionOther = e.target.value;
+          self.setState({ draft: d, addHint: "" });
+        }
+      });
+    }
     const addStyles = STYLE_OPTIONS.map(function (s) {
       const c = self.chip(st.draft.style === s);
       return { label: s, bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ draft: Object.assign({}, st.draft, { style: s }) }); } };
@@ -847,15 +997,16 @@ class Component extends DCLogic {
       hasFilters: !!(st.query || st.type !== "All" || st.regions.length || st.price !== "All" || st.minRating),
       onClearFilters: function () { self.setState({ query: "", type: "All", regions: [], price: "All", minRating: 0 }); },
       resultLine: (function () {
+        if (isLeaderboard) return list.length + (list.length === 1 ? " wine ranked" : " wines ranked");
         const n = inCellar ? list.reduce(function (a, w) { return a + self.remaining(w); }, 0) : list.length;
         return n + (n === 1 ? " bottle" : " bottles");
       })(),
-      sortLabel: inCellar ? sortLabels[st.sort] : "Most recent first",
+      sortLabel: isLeaderboard ? "Ranked by rating" : inCellar ? sortLabels[st.sort] : "Most recent first",
       onToggleSort: function () { if (inCellar) self.setState({ sort: nextSort[st.sort] }); },
       groups: groups,
       showEmpty: list.length === 0,
-      emptyTitle: inCellar ? "Nothing matches" : "Nothing logged yet",
-      emptyBody: inCellar ? "Loosen a filter, or add the bottle you just bought." : "Open a bottle and rate it; it lands here.",
+      emptyTitle: isLeaderboard ? "Nothing rated yet" : inCellar ? "Nothing matches" : "Nothing logged yet",
+      emptyBody: isLeaderboard ? "Rate a bottle from the cellar and it'll show up here." : inCellar ? "Loosen a filter, or add the bottle you just bought." : "Open a bottle and rate it; it lands here.",
       onSuggest: function () { self.setState({ modal: "suggest" }); },
       onAdd: function () { self.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "" }); },
       onCloseModal: function () { self.setState({ modal: null, target: null, editingId: null }); },
