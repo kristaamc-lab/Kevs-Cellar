@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kevin's Wine Cellar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="_ds/organic-ded8c398-2b5b-4582-bfbc-7b7cea01d9c2/styles.css">
+<script src="_ds/organic-ded8c398-2b5b-4582-bfbc-7b7cea01d9c2/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+  a { color: var(--color-accent-700); }
+  a:hover { color: var(--color-accent-600); }
+  input::placeholder { color: var(--color-neutral-500); }
+  @keyframes riseIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+  /* Desktop: sidebar of controls + a non-stretching grid of bottle cards.
+     The template's elements carry inline styles (highest specificity), so
+     any rule here that overrides one needs !important to win. */
+  @media (min-width: 900px) {
+    .cellar-shell { max-width: 1320px !important; }
+    .cellar-body { display: flex; align-items: flex-start; gap: var(--space-8); }
+    .cellar-sidebar { flex: none; width: 320px; position: sticky; top: var(--space-6); max-height: calc(100vh - var(--space-8)); overflow-y: auto; padding-bottom: var(--space-4); }
+    .cellar-main { flex: 1; min-width: 0; }
+    .cellar-grid { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(260px, 300px)); gap: var(--space-3) !important; align-content: start; }
+    .cta-bar-inner { max-width: 1320px !important; display: flex; justify-content: flex-end; }
+    .cta-btn { width: 320px !important; }
+    .modal-backdrop { align-items: center !important; }
+  }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; background: var(--color-bg); padding: 0 0 100px;">
+  <div class="cellar-shell" style="max-width: 480px; margin: 0 auto; padding: 0 var(--space-4);">
+  <div class="cellar-body">
+  <div class="cellar-sidebar">
+
+    <header style="padding: var(--space-8) 0 var(--space-4);">
+      <div style="display: flex; align-items: flex-start; gap: var(--space-3);">
+        <div style="flex: 1;">
+          <h1 style="font-family: var(--font-heading); font-weight: 400; font-size: 38px; line-height: 1.06; letter-spacing: -0.02em; margin: 0 0 var(--space-2);">Kevin&rsquo;s<br>Wine Cellar</h1>
+          <div style="font-size: 14px; color: var(--color-neutral-700);">{{ summaryLine }}</div>
+        </div>
+        <button type="button" onClick="{{ onAdd }}" title="Add a bottle" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 0; cursor: pointer; background: var(--color-accent); color: var(--color-accent-100); font-size: 26px; line-height: 1; box-shadow: var(--shadow-sm); margin-top: 2px;" style-hover="background: var(--color-accent-600);">+</button>
+      </div>
+    </header>
+
+    <section style="background: var(--color-surface); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: var(--space-4); box-shadow: var(--shadow-sm);">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: var(--space-4) var(--space-4) var(--space-1);">
+        <h2 style="font-family: var(--font-heading); font-weight: 400; font-size: 19px; margin: 0;">Where it&rsquo;s from</h2>
+        <div style="font-size: 11.5px; color: var(--color-neutral-600); font-weight: 600;">{{ mapHint }}</div>
+      </div>
+      <iframe src="wine-map.html" title="Map of cellar regions" ref="{{ mapRef }}" onLoad="{{ onMapLoad }}" style="width: 100%; height: 300px; border: 0; display: block; background: var(--color-surface);"></iframe>
+    </section>
+
+    <div style="display: flex; gap: var(--space-1); background: var(--color-surface); padding: 5px; border-radius: 999px; margin-bottom: var(--space-4);">
+      <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="2">
+        <button type="button" onClick="{{ tab.onClick }}" style="flex: 1; border: 0; cursor: pointer; border-radius: 999px; padding: 10px 8px; font-size: 13px; font-weight: 700; background: {{ tab.bg }}; color: {{ tab.fg }}; box-shadow: {{ tab.shadow }}; transition: background 140ms ease;">{{ tab.label }}</button>
+      </sc-for>
+    </div>
+
+    <input value="{{ query }}" onInput="{{ onQuery }}" placeholder="Search producer, grape, appellation" style="width: 100%; border: 1px solid var(--color-divider); background: var(--color-neutral-100); border-radius: 999px; padding: 13px var(--space-4); font-size: 15px; color: var(--color-text); font-family: inherit; margin-bottom: var(--space-3);">
+
+    <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-2);">
+      <sc-for list="{{ typeChips }}" as="chip" hint-placeholder-count="4">
+        <button type="button" onClick="{{ chip.onClick }}" style="border: 1px solid {{ chip.border }}; background: {{ chip.bg }}; color: {{ chip.fg }}; border-radius: 999px; padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 130ms ease;">{{ chip.label }}</button>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-2);">
+      <sc-for list="{{ regionChips }}" as="chip" hint-placeholder-count="6">
+        <button type="button" onClick="{{ chip.onClick }}" style="border: 1px solid {{ chip.border }}; background: {{ chip.bg }}; color: {{ chip.fg }}; border-radius: 999px; padding: 7px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 130ms ease;">{{ chip.label }}</button>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 7px; align-items: center; padding-bottom: var(--space-4);">
+      <sc-for list="{{ metaChips }}" as="chip" hint-placeholder-count="3">
+        <button type="button" onClick="{{ chip.onClick }}" style="border: 1px solid {{ chip.border }}; background: {{ chip.bg }}; color: {{ chip.fg }}; border-radius: 999px; padding: 7px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 130ms ease;">{{ chip.label }}</button>
+      </sc-for>
+      <div style="flex: 1;"></div>
+      <sc-if value="{{ hasFilters }}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{ onClearFilters }}" style="border: 0; background: transparent; color: var(--color-accent-700); font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 7px 2px;">Clear filters</button>
+      </sc-if>
+    </div>
+
+  </div>
+  <div class="cellar-main">
+
+    <div style="display: flex; align-items: baseline; justify-content: space-between; padding: var(--space-4) 2px var(--space-3); border-top: 1px solid var(--color-divider);">
+      <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700;">{{ resultLine }}</div>
+      <button type="button" onClick="{{ onToggleSort }}" style="border: 0; background: transparent; color: var(--color-accent-700); font-size: 12.5px; font-weight: 700; cursor: pointer;">{{ sortLabel }}</button>
+    </div>
+
+    <sc-if value="{{ showEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="background: var(--color-surface); border-radius: var(--radius-lg); padding: var(--space-8) var(--space-6); text-align: center;">
+        <div style="font-family: var(--font-heading); font-size: 20px; margin-bottom: var(--space-1);">{{ emptyTitle }}</div>
+        <div style="font-size: 14px; color: var(--color-neutral-700);">{{ emptyBody }}</div>
+      </div>
+    </sc-if>
+
+    <sc-for list="{{ groups }}" as="group" hint-placeholder-count="2">
+      <section style="margin-bottom: var(--space-6);">
+        <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); padding-left: 2px;">
+          <h2 style="font-family: var(--font-heading); font-weight: 400; font-size: 21px; margin: 0; letter-spacing: -0.01em;">{{ group.title }}</h2>
+          <div style="height: 1px; flex: 1; background: var(--color-divider);"></div>
+          <div style="font-size: 12px; font-weight: 700; color: var(--color-neutral-600);">{{ group.count }}</div>
+        </div>
+
+        <div class="cellar-grid" style="display: flex; flex-direction: column; gap: var(--space-2);">
+          <sc-for list="{{ group.items }}" as="w" hint-placeholder-count="4">
+            <article style="background: var(--color-surface); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-4) var(--space-3); box-shadow: var(--shadow-sm);">
+              <div style="display: flex; gap: var(--space-3); align-items: flex-start;">
+                <div style="width: 46px; height: 46px; border-radius: 999px; background: {{ w.discBg }}; color: {{ w.discFg }}; flex: none; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;">{{ w.vintageShort }}</div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-size: 15.5px; font-weight: 700; line-height: 1.28; text-wrap: pretty;">{{ w.name }}</div>
+                  <div style="font-size: 13px; color: var(--color-neutral-700); margin-top: 3px;">{{ w.meta }}</div>
+                </div>
+                <div style="font-size: 14px; font-weight: 700; color: var(--color-accent-700); flex: none;">{{ w.price }}</div>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3);">
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; flex: 1; align-items: center;">
+                  <span style="border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 700; background: {{ w.tagBg }}; color: {{ w.tagFg }};">{{ w.style }}</span>
+                  <sc-if value="{{ w.hasNote }}" hint-placeholder-val="{{ false }}">
+                    <span style="border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--color-neutral-700); border: 1px solid var(--color-divider);">{{ w.note }}</span>
+                  </sc-if>
+                  <sc-if value="{{ w.hasStars }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size: 13px; color: var(--color-accent-600); letter-spacing: 0.08em;">{{ w.stars }}</span>
+                  </sc-if>
+                </div>
+                <button type="button" onClick="{{ w.onAction }}" style="border: 0; cursor: pointer; border-radius: 999px; padding: 9px 15px; font-size: 12.5px; font-family: var(--font-heading); background: {{ w.actionBg }}; color: {{ w.actionFg }}; flex: none;">{{ w.actionLabel }}</button>
+              </div>
+            </article>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+
+  </div>
+  </div>
+
+    <footer style="padding: var(--space-6) 2px 0; border-top: 1px solid var(--color-divider);">
+      <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2);">
+        <div style="width: 11px; height: 11px; border-radius: 999px; background: var(--color-accent-2); flex: none;"></div>
+        <div style="font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700;">{{ sourceLine }}</div>
+      </div>
+      <div style="font-size: 12px; color: var(--color-neutral-600); line-height: 1.65;">{{ footerLine }}</div>
+    </footer>
+  </div>
+
+  <div style="position: fixed; left: 0; right: 0; bottom: 0; padding: var(--space-3) var(--space-4) var(--space-4); background: linear-gradient(to top, var(--color-bg) 58%, rgba(245,234,216,0)); pointer-events: none;">
+    <div class="cta-bar-inner" style="max-width: 480px; margin: 0 auto; pointer-events: auto;">
+      <button type="button" onClick="{{ onSuggest }}" class="cta-btn" style="width: 100%; border: 0; cursor: pointer; border-radius: 999px; padding: var(--space-4) var(--space-6); background: var(--color-accent); color: var(--color-accent-100); font-family: var(--font-heading); font-size: 16px; box-shadow: var(--shadow-lg);" style-hover="background: var(--color-accent-600);">What should we open?</button>
+    </div>
+  </div>
+
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ onCloseModal }}" class="modal-backdrop" style="position: fixed; inset: 0; background: rgba(32,30,29,0.5); display: flex; align-items: flex-end; justify-content: center; padding: var(--space-3); z-index: 40;">
+      <div onClick="{{ stop }}" style="width: 100%; max-width: 480px; background: var(--color-neutral-100); border-radius: var(--radius-lg); padding: var(--space-6) var(--space-4) var(--space-4); box-shadow: var(--shadow-lg); max-height: 88vh; overflow: auto; animation: riseIn 220ms ease both;">
+        <div style="display: flex; align-items: flex-start; gap: var(--space-3);">
+          <h3 style="font-family: var(--font-heading); font-weight: 400; font-size: 24px; margin: 0; flex: 1; line-height: 1.14; letter-spacing: -0.01em;">{{ modalTitle }}</h3>
+          <button type="button" onClick="{{ onCloseModal }}" style="border: 0; background: var(--color-surface); color: var(--color-text); width: 32px; height: 32px; border-radius: 999px; cursor: pointer; font-size: 17px; flex: none;">&times;</button>
+        </div>
+        <div style="font-size: 14px; color: var(--color-neutral-700); margin: var(--space-2) 0 var(--space-4);">{{ modalSub }}</div>
+
+        <sc-if value="{{ isSuggest }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-6);">
+            <sc-for list="{{ occasions }}" as="occ" hint-placeholder-count="6">
+              <button type="button" onClick="{{ occ.onClick }}" style="border: 1px solid {{ occ.border }}; background: {{ occ.bg }}; color: {{ occ.fg }}; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 130ms ease;">{{ occ.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+            <sc-for list="{{ picks }}" as="p" hint-placeholder-count="3">
+              <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4);">
+                <div style="display: flex; gap: var(--space-2); align-items: baseline;">
+                  <div style="font-size: 11px; font-weight: 700; color: var(--color-accent-700); letter-spacing: 0.1em;">{{ p.rank }}</div>
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="font-size: 15px; font-weight: 700; line-height: 1.3;">{{ p.name }}</div>
+                    <div style="font-size: 12.5px; color: var(--color-neutral-700); margin-top: 2px;">{{ p.meta }}</div>
+                  </div>
+                  <div style="font-size: 13px; font-weight: 700; color: var(--color-accent-700);">{{ p.price }}</div>
+                </div>
+                <div style="font-size: 13px; color: var(--color-accent-2-700); margin-top: var(--space-2); padding-left: 26px;">{{ p.why }}</div>
+                <div style="padding-left: 26px; margin-top: var(--space-3);">
+                  <button type="button" onClick="{{ p.onOpen }}" style="border: 0; cursor: pointer; border-radius: 999px; padding: 8px 15px; font-size: 12.5px; font-family: var(--font-heading); background: var(--color-accent); color: var(--color-accent-100);">Open this one</button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isFinish }}" hint-placeholder-val="{{ false }}">
+          <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-6);">
+            <div style="font-size: 15px; font-weight: 700; line-height: 1.3;">{{ finishName }}</div>
+            <div style="font-size: 12.5px; color: var(--color-neutral-700); margin-top: 3px;">{{ finishMeta }}</div>
+          </div>
+          <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: var(--space-1);">Rating</div>
+          <div style="display: flex; gap: 4px;">
+            <sc-for list="{{ starButtons }}" as="s" hint-placeholder-count="5">
+              <button type="button" onClick="{{ s.onClick }}" style="border: 0; background: transparent; cursor: pointer; font-size: 32px; line-height: 1; padding: 4px 3px; color: {{ s.color }}; transition: color 120ms ease;">&#9733;</button>
+            </sc-for>
+          </div>
+          <div style="font-size: 13px; color: var(--color-neutral-700); margin: var(--space-1) 0 var(--space-4); min-height: 20px;">{{ ratingWord }}</div>
+          <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: var(--space-1);">Tasting note</div>
+          <input value="{{ draftNote }}" onInput="{{ onDraftNote }}" placeholder="Who, where, how it drank" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 14px; color: var(--color-text); font-family: inherit; margin-bottom: var(--space-6);">
+          <div style="display: flex; gap: var(--space-2);">
+            <button type="button" onClick="{{ onConfirmFinish }}" style="flex: 1; border: 0; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); background: var(--color-accent); color: var(--color-accent-100); font-family: var(--font-heading); font-size: 15px;">Log as finished</button>
+            <button type="button" onClick="{{ onCloseModal }}" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); color: var(--color-text); font-size: 14px; font-weight: 600;">Cancel</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isAdd }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+            <sc-for list="{{ addFields }}" as="f" hint-placeholder-count="6">
+              <label style="display: block;">
+                <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 5px;">{{ f.label }}</div>
+                <input value="{{ f.value }}" onInput="{{ f.onInput }}" placeholder="{{ f.placeholder }}" inputmode="{{ f.mode }}" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 15px; color: var(--color-text); font-family: inherit;">
+              </label>
+            </sc-for>
+
+            <div>
+              <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 6px;">Style</div>
+              <div style="display: flex; flex-wrap: wrap; gap: 7px;">
+                <sc-for list="{{ addStyles }}" as="s" hint-placeholder-count="4">
+                  <button type="button" onClick="{{ s.onClick }}" style="border: 1px solid {{ s.border }}; background: {{ s.bg }}; color: {{ s.fg }}; border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;">{{ s.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="font-size: 12.5px; color: var(--color-neutral-600); min-height: 18px;">{{ addHint }}</div>
+
+            <div style="display: flex; gap: var(--space-2);">
+              <button type="button" onClick="{{ onSaveBottle }}" style="flex: 1; border: 0; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); background: {{ saveBg }}; color: var(--color-accent-100); font-family: var(--font-heading); font-size: 15px;">Add to cellar</button>
+              <button type="button" onClick="{{ onCloseModal }}" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); color: var(--color-text); font-size: 14px; font-weight: 600;">Cancel</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:900}}">
+const KEY = "mcnamara-cellar-v1";
+
+/* Snapshot of wine_list.xlsx — also written to wines.json for the code handoff.
+   In Claude Code, replace RAW with a fetch of the live sheet. */
+const RAW = [
+  [1,"2023","Nuits St George \"Clos D'Arlot\" 1er Cru","white","France","Burgundy","Chardonnay",168,"vila vinoteca barcelona"],
+  [2,"2022","Pierre Mayeud Beaune 1er Cru \"Clos des Mouches\"","white","France","Burgundy","Chardonnay",140,""],
+  [3,"2019","Jacques Prieur Meursault \"Clos de Mazeray\"","white","France","Burgundy","Chardonnay",130,"vinyard we biked through"],
+  [4,"2022","Bouzereau-Gruere St-Aubin 1er Cru \"Cortons\"","white","France","Burgundy","Chardonnay",81,""],
+  [5,"2022","Les Parcellaires Saint-Aubin \"En L'Ebaupin\"","white","France","Burgundy","Chardonnay",77,""],
+  [6,"2020","Denogent Pouilly-Fuisse \"La Croix Ville Vignes\"","white","France","Burgundy","Chardonnay",63,""],
+  [7,"2022","Domaine Denis Pere et Fils Pernand-Vergelesses","white","France","Burgundy","Chardonnay",45,""],
+  [8,"2023","Alain Chavy Bourgogne","white","France","Burgundy","Chardonnay",30,""],
+  [9,"2023","Larochette Macon-Fuisse \"La Grande Bruyere\"","white","France","Burgundy","Chardonnay",24,""],
+  [10,"2023","Regnard Bourgogne blanc","white","France","Burgundy","Chardonnay",30,""],
+  [11,"2023","Domaine des Tourons Macon Charney","white","France","Burgundy","Chardonnay",23,""],
+  [12,"2024","Domaine des Tourons Macon Charney","white","France","Burgundy","Chardonnay",18,""],
+  [13,"2023","Renaud Macon Villages","white","France","Burgundy","Chardonnay",22,""],
+  [14,"2022","Macon Verze","white","France","Burgundy","Chardonnay",23,""],
+  [16,"2024","Crena Riviera Ligure","white","Italy","Liguria","Vermentino",32,""],
+  [17,"2023","Gheddo \"Tinaar\" Blanco","white","Italy","Piedmont","Nascetta/Arneis",30,""],
+  [18,"2022","Bruno Giacometto Erbaluce di Caluso","white","Italy","Piedmont","Erbaluce",30,""],
+  [19,"2023","Punica Samas","white","Italy","Sardinia","Vermentino/Chardonnay",23,""],
+  [20,"2023","Velonosi Offida","white","Italy","Offida","Pecorino",22,""],
+  [21,"2024","Chateau Saint Jean \"Les Vannades\"","rose","France","Provence","Grenache/Cinsault",20,""],
+  [23,"2016","Marie Noelle Ledru Champagne Cuvee Du Goute","white","France","Champagne","Pinot Noir",292,"sparkling/wine tip"],
+  [24,"2015","Pol Roger Sir Winston Churchill","white","France","Champagne","Pinot Noir/Chardonnay",276,"sparkling/wine tip"],
+  [25,"2016","Bereche & Fils AY Grand Cru Extra Brut","white","France","Champagne","Pinot Noir/Chardonnay",251,"sparkling/wine tip"],
+  [26,"2013","Taittinger Comtes de Champagne Blanc de Blancs","white","France","Champagne","Chardonnay",190,"sparkling Paris duty free"],
+  [27,"2016","Pol Roger Vintage","white","France","Champagne","Pinot Noir/Chardonnay",150,"sparkling"],
+  [28,"2016","Copinet \"Cuvee Leonard\" Blanc de Blancs","white","France","Champagne","Chardonnay",67,"sparkling"],
+  [29,"n/a","Gimonnet-Gonet L'Origine Grand Cru","white","France","Champagne","Chardonnay",55,"sparkling"],
+  [30,"n/a","Gimonnet-Gonet Rose L'Eclat","rose","France","Champagne","Chardonnay/Pinot Noir",60,"sparkling"],
+  [31,"2017","Jean Milan Grande Reserve Grand Cru","white","France","Champagne","Chardonnay",85,"sparkling"],
+  [32,"2015","Palmer \"Grands Terroirs\"","white","France","Champagne","Chard/Pinot Noir & Meunier",82,"sparkling/Frankfurt"],
+  [33,"2011","Waris-Larmandier Grand Cru Blanc de Blancs","white","France","Champagne","Chardonnay",80,"sparkling/Zurich"],
+  [34,"2014-21","Pierre Gimonnet & Fils \"Cuis 1er Cru\"","white","France","Champagne","Chardonnay",0,"sparkling gift from Beth"],
+  [35,"n/a","Champagne Henriot","rose","France","Champagne","Chardonnay/Pinot Noir",65,"sparkling"],
+  [36,"n/a","Lambert Cremant de Loire","white","France","Loire","Chardonnay/Chenin Blanc",26,"sparkling"],
+  [37,"n/a","Laurens Blanquette Limoux","white","France","Limoux","Mauzac/Chard/Chen. Blanc",24,"sparkling"],
+  [38,"n/a","Bonnamy Cremant de Loire","white","France","Loire","Chardonnay/Chenin Blanc",18,"sparkling"],
+  [39,"2020","Luigi Giordano Nebbiolo Rose Brut Nature","rose","Italy","Piedmont","Nebbiolo",46,"sparkling"],
+  [40,"2019","Argyle Vintage","white","USA","Oregon","3 Traditional",22,"sparkling"]
+];
+
+const OCCASIONS = [
+  { key: "aperitivo", label: "Aperitivo", why: "Light-bodied and bright — right for the first glass, before food." },
+  { key: "seafood", label: "Oysters & seafood", why: "Saline and taut. Cuts shellfish without covering it." },
+  { key: "celebration", label: "Celebration", why: "One of the cellar's serious bottles. Worth the occasion." },
+  { key: "weeknight", label: "Weeknight", why: "Everyday value — nothing lost by drinking it tonight." },
+  { key: "richdish", label: "Roast chicken & cream", why: "Weight and oak enough to stand up to butter and fat." },
+  { key: "gift", label: "Bring as a gift", why: "Recognisable, generous, hard to get wrong." }
+];
+
+const RATING_WORDS = ["Tap a star", "Corked or flat", "Fine, not memorable", "Solid — would pour again", "Excellent bottle", "Cellar benchmark"];
+
+const STYLE_OPTIONS = ["White", "Rosé", "Red", "Sparkling"];
+
+function styleOf(color, sparkling) {
+  if (sparkling && color === "rose") return "Sparkling rosé";
+  if (sparkling) return "Sparkling";
+  if (color === "rose") return "Rosé";
+  if (color === "red") return "Red";
+  return "White";
+}
+
+function normalise(o) {
+  const notes = o.notes || "";
+  const sparkling = !!o.sparkling || /sparkling|cremant|crémant|blanquette/i.test(notes + " " + o.name);
+  return {
+    id: o.id, vintage: String(o.vintage || "n/a"), name: o.name,
+    color: o.color, country: o.country || "", region: o.region || "Unfiled",
+    grape: o.grape || "", cost: Number(o.cost) || 0, notes: notes,
+    style: styleOf(o.color, sparkling), sparkling: sparkling,
+    added: !!o.added,
+    note: notes.replace(/sparkling\s*\/?\s*/i, "").trim()
+  };
+}
+
+const BASE = RAW.map(function (r) {
+  return normalise({ id: r[0], vintage: r[1], name: r[2], color: r[3], country: r[4], region: r[5], grape: r[6], cost: r[7], notes: r[8] });
+});
+
+function loadStore() {
+  try {
+    const raw = window.localStorage.getItem(KEY);
+    const s = raw ? JSON.parse(raw) : {};
+    return { log: s.log || {}, added: s.added || [] };
+  } catch (e) { return { log: {}, added: [] }; }
+}
+
+const EMPTY_DRAFT = { name: "", vintage: "", region: "", country: "", grape: "", cost: "", notes: "", style: "White" };
+
+class Component extends DCLogic {
+  state = (function () {
+    const s = loadStore();
+    return {
+      tab: "cellar", query: "", type: "All", regions: [], price: "All", minRating: 0,
+      sort: "price", modal: null, target: null, occasion: "aperitivo",
+      draftRating: 0, draftNote: "", draft: Object.assign({}, EMPTY_DRAFT),
+      addHint: "", log: s.log, added: s.added
+    };
+  })();
+
+  mapEl = null;
+
+  componentDidMount() {
+    const self = this;
+    this.onMsg = function (e) {
+      if (!e.data || e.data.type !== "region") return;
+      const r = e.data.region;
+      const has = self.state.regions.indexOf(r) >= 0;
+      self.setState({ regions: has ? self.state.regions.filter(function (x) { return x !== r; }) : self.state.regions.concat([r]) });
+    };
+    window.addEventListener("message", this.onMsg);
+  }
+
+  componentWillUnmount() { window.removeEventListener("message", this.onMsg); }
+
+  componentDidUpdate() { this.postMap(); }
+
+  postMap() {
+    if (!this.mapEl || !this.mapEl.contentWindow) return;
+    const counts = {}, st = this.state;
+    this.all().forEach(function (w) { counts[w.region] = (counts[w.region] || 0) + 1; });
+    const regions = Object.keys(counts).map(function (r) {
+      return { region: r, count: counts[r], active: st.regions.indexOf(r) >= 0 };
+    });
+    this.mapEl.contentWindow.postMessage({ type: "cellar", regions: regions }, "*");
+  }
+
+  persist(patch) {
+    this.setState(patch);
+    const next = {
+      log: patch.log || this.state.log,
+      added: patch.added || this.state.added
+    };
+    try { window.localStorage.setItem(KEY, JSON.stringify(next)); } catch (e) {}
+  }
+
+  all() {
+    return BASE.concat(this.state.added.map(normalise));
+  }
+
+  /* ── filtering ─────────────────────────────────────────── */
+
+  matches(w) {
+    const s = this.state;
+    if (s.type === "Sparkling" && !w.sparkling) return false;
+    if (s.type === "Still white" && (w.sparkling || w.color !== "white")) return false;
+    if (s.type === "Rosé" && w.color !== "rose") return false;
+    if (s.regions.length && s.regions.indexOf(w.region) < 0) return false;
+    if (s.price === "Under $40" && w.cost >= 40) return false;
+    if (s.price === "$40–100" && (w.cost < 40 || w.cost > 100)) return false;
+    if (s.price === "Over $100" && w.cost <= 100) return false;
+    if (s.query) {
+      const hay = (w.name + " " + w.region + " " + w.grape + " " + w.country + " " + w.notes).toLowerCase();
+      if (hay.indexOf(s.query.toLowerCase()) < 0) return false;
+    }
+    return true;
+  }
+
+  visible() {
+    const self = this, log = this.state.log;
+    const inCellar = this.state.tab === "cellar";
+    let list = this.all().filter(function (w) {
+      const done = !!log[w.id];
+      if (inCellar ? done : !done) return false;
+      if (!inCellar && (log[w.id].rating || 0) < self.state.minRating) return false;
+      return self.matches(w);
+    });
+    if (!inCellar) return list.sort(function (a, b) { return (log[b.id].at || 0) - (log[a.id].at || 0); });
+    const s = this.state.sort;
+    return list.sort(function (a, b) {
+      if (s === "price") return b.cost - a.cost;
+      if (s === "name") return a.name.localeCompare(b.name);
+      return String(b.vintage).localeCompare(String(a.vintage));
+    });
+  }
+
+  /* ── pairing ───────────────────────────────────────────── */
+
+  score(w, occ) {
+    const g = w.grape.toLowerCase(), r = w.region.toLowerCase(), c = w.cost;
+    let n = 0;
+    if (occ === "aperitivo") {
+      if (w.sparkling) n += 4;
+      if (/vermentino|pecorino|erbaluce|nascetta|arneis/.test(g)) n += 4;
+      if (w.color === "rose") n += 3;
+      if (c < 40) n += 2;
+      if (c > 90) n -= 3;
+    } else if (occ === "seafood") {
+      if (/vermentino|pecorino|erbaluce/.test(g)) n += 5;
+      if (/liguria|sardinia|offida|loire/.test(r)) n += 3;
+      if (/blanc de blancs/.test(w.name.toLowerCase())) n += 4;
+      if (/macon|pouilly/.test(w.name.toLowerCase())) n += 2;
+      if (c < 60) n += 1;
+    } else if (occ === "celebration") {
+      n += Math.min(6, c / 45);
+      if (/champagne/.test(r)) n += 4;
+      if (/1er cru|grand cru/i.test(w.name)) n += 2;
+    } else if (occ === "weeknight") {
+      if (c > 0 && c <= 26) n += 5;
+      if (c > 26 && c <= 35) n += 2;
+      if (c > 60) n -= 5;
+      if (/macon|bourgogne/i.test(w.name)) n += 2;
+    } else if (occ === "richdish") {
+      if (/chardonnay/.test(g) && !w.sparkling) n += 4;
+      if (/meursault|1er cru|beaune|saint-aubin|st-aubin|pernand/i.test(w.name)) n += 4;
+      if (c >= 60) n += 2;
+      if (w.sparkling) n -= 3;
+    } else if (occ === "gift") {
+      if (c >= 70 && c <= 200) n += 4;
+      if (/champagne/.test(r)) n += 3;
+      if (/pol roger|taittinger|meursault|gimonnet/i.test(w.name)) n += 2;
+      if (c < 40) n -= 3;
+    }
+    if (/gift from/i.test(w.notes)) n -= 1;
+    return n;
+  }
+
+  picksFor(occ) {
+    const self = this, log = this.state.log;
+    return this.all()
+      .filter(function (w) { return !log[w.id]; })
+      .map(function (w) { return { w: w, n: self.score(w, occ) }; })
+      .sort(function (a, b) { return b.n - a.n; })
+      .slice(0, 3)
+      .map(function (x) { return x.w; });
+  }
+
+  /* ── actions ───────────────────────────────────────────── */
+
+  chip(active, sage) {
+    if (active) return sage
+      ? { bg: "var(--color-accent-2-600)", fg: "var(--color-accent-2-100)", border: "var(--color-accent-2-600)" }
+      : { bg: "var(--color-accent)", fg: "var(--color-accent-100)", border: "var(--color-accent)" };
+    return { bg: "transparent", fg: "var(--color-neutral-800)", border: "var(--color-divider)" };
+  }
+
+  saveBottle() {
+    const d = this.state.draft;
+    if (!d.name.trim()) { this.setState({ addHint: "A producer or bottle name is required." }); return; }
+    const id = "new-" + Date.now();
+    const rec = {
+      id: id, name: d.name.trim(), vintage: d.vintage.trim() || "n/a",
+      region: d.region.trim() || "Unfiled", country: d.country.trim(),
+      grape: d.grape.trim(), cost: Number(String(d.cost).replace(/[^0-9.]/g, "")) || 0,
+      notes: d.notes.trim(), added: true,
+      color: d.style === "Rosé" ? "rose" : d.style === "Red" ? "red" : "white",
+      sparkling: d.style === "Sparkling"
+    };
+    this.persist({ added: this.state.added.concat([rec]), modal: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "", tab: "cellar" });
+  }
+
+  confirmFinish() {
+    const w = this.state.target;
+    if (!w) return;
+    const log = Object.assign({}, this.state.log);
+    log[w.id] = { at: Date.now(), rating: this.state.draftRating, note: this.state.draftNote.trim() };
+    this.persist({ log: log, modal: null, target: null, draftRating: 0, draftNote: "" });
+  }
+
+  unfinish(w) {
+    const log = Object.assign({}, this.state.log);
+    delete log[w.id];
+    this.persist({ log: log });
+  }
+
+  renderVals() {
+    const self = this, st = this.state, log = st.log;
+    const all = this.all();
+    const inCellar = st.tab === "cellar";
+    const remaining = all.filter(function (w) { return !log[w.id]; });
+    const list = this.visible();
+
+    const value = remaining.reduce(function (a, w) { return a + w.cost; }, 0);
+    const finishedCount = all.length - remaining.length;
+
+    /* tabs */
+    const tabs = [["cellar", "In the cellar (" + remaining.length + ")"], ["archive", "Finished (" + finishedCount + ")"]].map(function (t) {
+      const on = st.tab === t[0];
+      return {
+        label: t[1], onClick: function () { self.setState({ tab: t[0] }); },
+        bg: on ? "var(--color-neutral-100)" : "transparent",
+        fg: on ? "var(--color-text)" : "var(--color-neutral-700)",
+        shadow: on ? "var(--shadow-sm)" : "none"
+      };
+    });
+
+    /* chips */
+    const typeChips = ["All", "Still white", "Sparkling", "Rosé"].map(function (t) {
+      const c = self.chip(st.type === t);
+      return { label: t, bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ type: t }); } };
+    });
+
+    const counts = {};
+    all.forEach(function (w) { counts[w.region] = (counts[w.region] || 0) + 1; });
+    const regionChips = Object.keys(counts)
+      .sort(function (a, b) { return counts[b] - counts[a]; })
+      .map(function (r) {
+        const c = self.chip(st.regions.indexOf(r) >= 0, true);
+        return {
+          label: r + " " + counts[r], bg: c.bg, fg: c.fg, border: c.border,
+          onClick: function () {
+            const has = st.regions.indexOf(r) >= 0;
+            self.setState({ regions: has ? st.regions.filter(function (x) { return x !== r; }) : st.regions.concat([r]) });
+          }
+        };
+      });
+
+    let metaChips = ["Under $40", "$40–100", "Over $100"].map(function (p) {
+      const c = self.chip(st.price === p);
+      return { label: p, bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ price: st.price === p ? "All" : p }); } };
+    });
+    if (!inCellar) {
+      metaChips = metaChips.concat([4, 5].map(function (n) {
+        const c = self.chip(st.minRating === n, true);
+        return { label: n + "★ and up", bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ minRating: st.minRating === n ? 0 : n }); } };
+      }));
+    }
+
+    /* cards */
+    const items = list.map(function (w) {
+      const entry = log[w.id];
+      const rating = entry ? entry.rating || 0 : 0;
+      const sparkling = w.sparkling;
+      const rose = w.color === "rose";
+      const noteText = entry && entry.note ? entry.note : w.note;
+      return {
+        name: w.name,
+        meta: [w.region, w.grape].filter(Boolean).join(" · "),
+        price: w.cost === 0 ? "gift" : "$" + w.cost,
+        vintageShort: w.vintage === "n/a" ? "NV" : w.vintage.slice(0, 4),
+        style: w.added ? w.style + " · new" : w.style,
+        discBg: sparkling ? "var(--color-accent-200)" : rose ? "var(--color-accent-300)" : "var(--color-accent-2-200)",
+        discFg: sparkling ? "var(--color-accent-800)" : rose ? "var(--color-accent-900)" : "var(--color-accent-2-800)",
+        tagBg: sparkling ? "var(--color-accent-200)" : rose ? "var(--color-accent-300)" : "var(--color-accent-2-200)",
+        tagFg: sparkling ? "var(--color-accent-800)" : rose ? "var(--color-accent-900)" : "var(--color-accent-2-800)",
+        hasNote: !!noteText,
+        note: noteText,
+        hasStars: rating > 0,
+        stars: "★★★★★".slice(0, rating) + "☆☆☆☆☆".slice(0, 5 - rating),
+        actionLabel: entry ? "Restore" : "Open",
+        actionBg: entry ? "transparent" : "var(--color-accent)",
+        actionFg: entry ? "var(--color-accent-700)" : "var(--color-accent-100)",
+        onAction: entry
+          ? function () { self.unfinish(w); }
+          : function () { self.setState({ modal: "finish", target: w, draftRating: 0, draftNote: "" }); }
+      };
+    });
+
+    const groups = items.length ? [{ title: inCellar ? "Bottles" : "Drunk & rated", count: items.length + "", items: items }] : [];
+
+    /* modal */
+    const occasions = OCCASIONS.map(function (o) {
+      const c = self.chip(st.occasion === o.key);
+      return { label: o.label, bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ occasion: o.key }); } };
+    });
+    const occ = OCCASIONS.filter(function (o) { return o.key === st.occasion; })[0] || OCCASIONS[0];
+    const picks = st.modal === "suggest" ? this.picksFor(st.occasion).map(function (w, i) {
+      return {
+        rank: ["FIRST", "THEN", "OR"][i] || "OR",
+        name: w.name,
+        meta: [w.vintage === "n/a" ? "NV" : w.vintage, w.region, w.grape].filter(Boolean).join(" · "),
+        price: w.cost === 0 ? "gift" : "$" + w.cost,
+        why: occ.why,
+        onOpen: function () { self.setState({ modal: "finish", target: w, draftRating: 0, draftNote: "" }); }
+      };
+    }) : [];
+
+    const starButtons = [1, 2, 3, 4, 5].map(function (n) {
+      return {
+        color: n <= st.draftRating ? "var(--color-accent)" : "var(--color-neutral-300)",
+        onClick: function () { self.setState({ draftRating: n }); }
+      };
+    });
+
+    const fieldDefs = [
+      ["name", "Producer & cuvée", "Domaine Leflaive Puligny-Montrachet", "text"],
+      ["vintage", "Vintage", "2022 — or leave blank for NV", "numeric"],
+      ["region", "Region / appellation", "Burgundy", "text"],
+      ["country", "Country", "France", "text"],
+      ["grape", "Grape", "Chardonnay", "text"],
+      ["cost", "Cost", "68", "numeric"],
+      ["notes", "Note", "Where you bought it, who it's for", "text"]
+    ];
+    const addFields = fieldDefs.map(function (f) {
+      return {
+        label: f[1], placeholder: f[2], mode: f[3], value: st.draft[f[0]] || "",
+        onInput: function (e) {
+          const d = Object.assign({}, st.draft);
+          d[f[0]] = e.target.value;
+          self.setState({ draft: d, addHint: "" });
+        }
+      };
+    });
+    const addStyles = STYLE_OPTIONS.map(function (s) {
+      const c = self.chip(st.draft.style === s);
+      return { label: s, bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ draft: Object.assign({}, st.draft, { style: s }) }); } };
+    });
+
+    const target = st.target;
+    const sortLabels = { price: "Sorted by price", name: "Sorted by name", vintage: "Sorted by vintage" };
+    const nextSort = { price: "name", name: "vintage", vintage: "price" };
+
+    return {
+      sourceLine: "Live from wine_list.xlsx",
+      mapRef: function (el) { self.mapEl = el; },
+      onMapLoad: function () { self.postMap(); },
+      mapHint: st.regions.length ? "Tap a bubble to clear" : "Tap a bubble to filter",
+      summaryLine: remaining.length + " bottles in the cellar · $" + value.toLocaleString() + " at cost",
+      footerLine: "Inventory reads from wine_list.xlsx. Bottles you add and bottles you finish are held on this device until the sheet is written back. Drink-by windows need a Drink-by column in the sheet.",
+      tabs: tabs,
+      query: st.query,
+      onQuery: function (e) { self.setState({ query: e.target.value }); },
+      typeChips: typeChips,
+      regionChips: regionChips,
+      metaChips: metaChips,
+      hasFilters: !!(st.query || st.type !== "All" || st.regions.length || st.price !== "All" || st.minRating),
+      onClearFilters: function () { self.setState({ query: "", type: "All", regions: [], price: "All", minRating: 0 }); },
+      resultLine: list.length + (list.length === 1 ? " bottle" : " bottles"),
+      sortLabel: inCellar ? sortLabels[st.sort] : "Most recent first",
+      onToggleSort: function () { if (inCellar) self.setState({ sort: nextSort[st.sort] }); },
+      groups: groups,
+      showEmpty: list.length === 0,
+      emptyTitle: inCellar ? "Nothing matches" : "Nothing logged yet",
+      emptyBody: inCellar ? "Loosen a filter, or add the bottle you just bought." : "Open a bottle and rate it; it lands here.",
+      onSuggest: function () { self.setState({ modal: "suggest" }); },
+      onAdd: function () { self.setState({ modal: "add", addHint: "" }); },
+      onCloseModal: function () { self.setState({ modal: null, target: null }); },
+      stop: function (e) { e.stopPropagation(); },
+      modalOpen: !!st.modal,
+      isSuggest: st.modal === "suggest",
+      isFinish: st.modal === "finish",
+      isAdd: st.modal === "add",
+      modalTitle: st.modal === "suggest" ? "What are we drinking?" : st.modal === "add" ? "New bottle" : "Opened",
+      modalSub: st.modal === "suggest"
+        ? "Pick the occasion; the cellar narrows itself."
+        : st.modal === "add" ? "Added to the cellar straight away." : "Rate it now while it's in the glass.",
+      occasions: occasions,
+      picks: picks,
+      finishName: target ? target.name : "",
+      finishMeta: target ? [target.vintage === "n/a" ? "NV" : target.vintage, target.region, target.grape].filter(Boolean).join(" · ") : "",
+      starButtons: starButtons,
+      ratingWord: RATING_WORDS[st.draftRating],
+      draftNote: st.draftNote,
+      onDraftNote: function (e) { self.setState({ draftNote: e.target.value }); },
+      onConfirmFinish: function () { self.confirmFinish(); },
+      addFields: addFields,
+      addStyles: addStyles,
+      addHint: st.addHint,
+      saveBg: st.draft.name.trim() ? "var(--color-accent)" : "var(--color-neutral-400)",
+      onSaveBottle: function () { self.saveBottle(); }
+    };
+  }
+}
+</script>
+</body>
+</html>
