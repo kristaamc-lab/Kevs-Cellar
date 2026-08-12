@@ -49,6 +49,13 @@
         <button type="button" onClick="{{ onOpenLeaderboard }}" title="Leaderboard" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 1px solid var(--color-divider); cursor: pointer; background: var(--color-surface); color: var(--color-accent-700); font-size: 19px; line-height: 1; margin-top: 2px;" style-hover="background: var(--color-neutral-200);">&#127942;</button>
         <button type="button" onClick="{{ onAdd }}" title="Add a bottle" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 0; cursor: pointer; background: var(--color-accent); color: var(--color-accent-100); font-size: 26px; line-height: 1; box-shadow: var(--shadow-sm); margin-top: 2px;" style-hover="background: var(--color-accent-600);">+</button>
       </div>
+      <div style="display: flex; gap: var(--space-3); margin-top: var(--space-2);">
+        <button type="button" onClick="{{ onExport }}" style="border: 0; background: transparent; color: var(--color-accent-700); font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0;">Export backup</button>
+        <label style="color: var(--color-accent-700); font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0;">
+          Import backup
+          <input type="file" accept="application/json" onChange="{{ onImport }}" style="position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0;">
+        </label>
+      </div>
     </header>
 
     <section style="background: var(--color-surface); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: var(--space-4); box-shadow: var(--shadow-sm);">
@@ -91,6 +98,23 @@
 
   </div>
   <div class="cellar-main">
+
+    <sc-if value="{{ showDashboard }}" hint-placeholder-val="{{ false }}">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: var(--space-2); padding: var(--space-4) 2px 0;">
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-3);">
+          <div style="font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700;">Bottles</div>
+          <div style="font-family: var(--font-heading); font-size: 22px; margin-top: 3px;">{{ dashBottles }}</div>
+        </div>
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-3);">
+          <div style="font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700;">Cellar value</div>
+          <div style="font-family: var(--font-heading); font-size: 22px; margin-top: 3px;">{{ dashValue }}</div>
+        </div>
+        <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-3);">
+          <div style="font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700;">Finished</div>
+          <div style="font-family: var(--font-heading); font-size: 22px; margin-top: 3px;">{{ dashFinished }}</div>
+        </div>
+      </div>
+    </sc-if>
 
     <div style="display: flex; align-items: baseline; justify-content: space-between; padding: var(--space-4) 2px var(--space-3); border-top: 1px solid var(--color-divider);">
       <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700;">{{ resultLine }}</div>
@@ -139,9 +163,13 @@
                   <sc-if value="{{ w.hasDrunk }}" hint-placeholder-val="{{ false }}">
                     <span style="border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--color-neutral-700); border: 1px solid var(--color-divider);">{{ w.drunkLabel }}</span>
                   </sc-if>
+                  <sc-if value="{{ w.hasLocation }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size: 11px; color: var(--color-neutral-600);">{{ w.locationLabel }}</span>
+                  </sc-if>
                 </div>
                 <button type="button" onClick="{{ w.onEdit }}" title="Edit details" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 13px; font-size: 12.5px; font-weight: 600; color: var(--color-neutral-700); flex: none;">Edit</button>
                 <sc-if value="{{ w.hasInventoryActions }}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{ w.onBumpDown }}" disabled="{{ !w.canBumpDown }}" title="Drank/lost a bottle without rating it" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 12px; font-size: 12.5px; font-weight: 700; color: var(--color-neutral-700); flex: none;">−1</button>
                   <button type="button" onClick="{{ w.onBump }}" title="Bought another bottle" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 12px; font-size: 12.5px; font-weight: 700; color: var(--color-neutral-700); flex: none;">+1</button>
                   <button type="button" onClick="{{ w.onAction }}" style="border: 0; cursor: pointer; border-radius: 999px; padding: 9px 15px; font-size: 12.5px; font-family: var(--font-heading); background: {{ w.actionBg }}; color: {{ w.actionFg }}; flex: none;">{{ w.actionLabel }}</button>
                 </sc-if>
@@ -244,7 +272,7 @@
 
         <sc-if value="{{ isAdd }}" hint-placeholder-val="{{ false }}">
           <div style="display: flex; flex-direction: column; gap: var(--space-3);">
-            <sc-for list="{{ addFields }}" as="f" hint-placeholder-count="10">
+            <sc-for list="{{ addFields }}" as="f" hint-placeholder-count="12">
               <label style="display: block;">
                 <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 5px;">{{ f.label }}</div>
                 <sc-if value="{{ f.isSelect }}" hint-placeholder-val="{{ false }}">
@@ -522,6 +550,7 @@ function normalise(o) {
     grape: o.grape || "", cost: Number(o.cost) || 0, notes: notes,
     style: styleOf(o.color, sparkling), sparkling: sparkling,
     added: !!o.added, qty: o.qty != null ? Number(o.qty) : 1,
+    rack: o.rack || "", shelf: o.shelf || "",
     note: notes.replace(/sparkling\s*\/?\s*/i, "").trim()
   };
 }
@@ -541,7 +570,7 @@ function loadStore() {
   } catch (e) { return { log: {}, added: [], consumed: {}, overrides: {}, baseline: {} }; }
 }
 
-const EMPTY_DRAFT = { name: "", vintage: "", region: "", regionOther: "", country: "", grape: "", cost: "", notes: "", style: "White", qty: "1", baseline: "0" };
+const EMPTY_DRAFT = { name: "", vintage: "", region: "", regionOther: "", country: "", grape: "", cost: "", notes: "", style: "White", qty: "1", baseline: "0", rack: "", shelf: "" };
 
 class Component extends DCLogic {
   state = (function () {
@@ -592,6 +621,42 @@ class Component extends DCLogic {
       baseline: patch.baseline || this.state.baseline
     };
     try { window.localStorage.setItem(KEY, JSON.stringify(next)); } catch (e) {}
+  }
+
+  exportBackup() {
+    const data = {
+      log: this.state.log, added: this.state.added, consumed: this.state.consumed,
+      overrides: this.state.overrides, baseline: this.state.baseline,
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "kevs-cellar-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  importBackup(file) {
+    const self = this;
+    const reader = new FileReader();
+    reader.onload = function () {
+      let data;
+      try { data = JSON.parse(String(reader.result)); } catch (e) {
+        window.alert("That file isn't valid JSON.");
+        return;
+      }
+      if (!data || typeof data !== "object") { window.alert("That file doesn't look like a cellar backup."); return; }
+      if (!window.confirm("This replaces everything currently on this device — quantities, ratings, notes, added bottles — with the backup file. Continue?")) return;
+      self.persist({
+        log: data.log || {}, added: data.added || [], consumed: data.consumed || {},
+        overrides: data.overrides || {}, baseline: data.baseline || {}
+      });
+    };
+    reader.readAsText(file);
   }
 
   /* Bottles still on hand: the sheet's qty minus whatever's been logged as
@@ -777,7 +842,8 @@ class Component extends DCLogic {
       notes: d.notes.trim(),
       color: d.style === "Rosé" ? "rose" : d.style === "Red" ? "red" : "white",
       sparkling: d.style === "Sparkling",
-      qty: isNaN(n) ? 1 : Math.max(0, n)
+      qty: isNaN(n) ? 1 : Math.max(0, n),
+      rack: d.rack.trim(), shelf: d.shelf.trim()
     };
     const baseline = Object.assign({}, this.state.baseline);
     if (this.state.editingId != null) {
@@ -829,7 +895,8 @@ class Component extends DCLogic {
         region: isKnown ? region : OTHER_REGION, regionOther: isKnown ? "" : region,
         country: w.country, grape: w.grape, cost: String(w.cost), notes: w.notes,
         style: styleOf(w.color, w.sparkling), qty: String(w.qty),
-        baseline: String(this.state.baseline[w.id] || 0)
+        baseline: String(this.state.baseline[w.id] || 0),
+        rack: w.rack || "", shelf: w.shelf || ""
       }
     });
   }
@@ -920,9 +987,13 @@ class Component extends DCLogic {
         ratedCountLabel: "avg of " + stats.count,
         hasDrunk: totalDrunk > 0,
         drunkLabel: totalDrunk + " finished all-time",
+        hasLocation: !!(w.rack || w.shelf),
+        locationLabel: [w.rack ? "Rack " + w.rack : "", w.shelf ? "Shelf " + w.shelf : ""].filter(Boolean).join(" · "),
         onEdit: function () { self.openEdit(w); },
         hasInventoryActions: true,
+        canBumpDown: rem > 0,
         onBump: function () { self.bumpQty(w, 1); },
+        onBumpDown: function () { self.bumpQty(w, -1); },
         actionLabel: inCellar ? "Open" : "Restore",
         actionBg: inCellar ? "var(--color-accent)" : "transparent",
         actionFg: inCellar ? "var(--color-accent-100)" : "var(--color-accent-700)",
@@ -983,6 +1054,8 @@ class Component extends DCLogic {
       ["cost", "Cost", "68", "numeric"],
       ["qty", "Quantity", "How many bottles", "numeric"],
       ["baseline", "Already finished (before this app)", "0", "numeric"],
+      ["rack", "Rack", "A", "text"],
+      ["shelf", "Shelf", "2", "text"],
       ["notes", "Note", "Where you bought it, who it's for", "text"]
     ];
     const addFields = fieldDefs.map(function (f) {
@@ -1046,6 +1119,16 @@ class Component extends DCLogic {
       emptyBody: inCellar ? "Loosen a filter, or add the bottle you just bought." : "Open a bottle and rate it; it lands here.",
       onSuggest: function () { self.setState({ modal: "suggest" }); },
       onOpenLeaderboard: function () { self.setState({ modal: "leaderboard" }); },
+      showDashboard: true,
+      dashBottles: totalBottles + "",
+      dashValue: "$" + value.toLocaleString(),
+      dashFinished: finishedCount + "",
+      onExport: function () { self.exportBackup(); },
+      onImport: function (e) {
+        const file = e.target.files && e.target.files[0];
+        if (file) self.importBackup(file);
+        e.target.value = "";
+      },
       leaderboardItems: leaderboardItems,
       leaderboardEmpty: leaderboardItems.length === 0,
       isLeaderboardModal: st.modal === "leaderboard",
