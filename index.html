@@ -133,6 +133,7 @@
                     <span style="font-size: 13px; color: var(--color-accent-600); letter-spacing: 0.08em;">{{ w.stars }}</span>
                   </sc-if>
                 </div>
+                <button type="button" onClick="{{ w.onEdit }}" title="Edit details" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 13px; font-size: 12.5px; font-weight: 600; color: var(--color-neutral-700); flex: none;">Edit</button>
                 <button type="button" onClick="{{ w.onAction }}" style="border: 0; cursor: pointer; border-radius: 999px; padding: 9px 15px; font-size: 12.5px; font-family: var(--font-heading); background: {{ w.actionBg }}; color: {{ w.actionFg }}; flex: none;">{{ w.actionLabel }}</button>
               </div>
             </article>
@@ -235,7 +236,7 @@
             <div style="font-size: 12.5px; color: var(--color-neutral-600); min-height: 18px;">{{ addHint }}</div>
 
             <div style="display: flex; gap: var(--space-2);">
-              <button type="button" onClick="{{ onSaveBottle }}" style="flex: 1; border: 0; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); background: {{ saveBg }}; color: var(--color-accent-100); font-family: var(--font-heading); font-size: 15px;">Add to cellar</button>
+              <button type="button" onClick="{{ onSaveBottle }}" style="flex: 1; border: 0; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); background: {{ saveBg }}; color: var(--color-accent-100); font-family: var(--font-heading); font-size: 15px;">{{ saveLabel }}</button>
               <button type="button" onClick="{{ onCloseModal }}" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); color: var(--color-text); font-size: 14px; font-weight: 600;">Cancel</button>
             </div>
           </div>
@@ -247,49 +248,191 @@
 
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:900}}">
-const KEY = "mcnamara-cellar-v1";
+const KEY = "mcnamara-cellar-v2";
 
 /* Snapshot of wine_list.xlsx — also written to wines.json for the code handoff.
-   In Claude Code, replace RAW with a fetch of the live sheet. */
+   In Claude Code, replace RAW with a fetch of the live sheet.
+   Row shape: [id, qty, vintage, name, color, country, region, grape, cost, notes] */
 const RAW = [
-  [1,"2023","Nuits St George \"Clos D'Arlot\" 1er Cru","white","France","Burgundy","Chardonnay",168,"vila vinoteca barcelona"],
-  [2,"2022","Pierre Mayeud Beaune 1er Cru \"Clos des Mouches\"","white","France","Burgundy","Chardonnay",140,""],
-  [3,"2019","Jacques Prieur Meursault \"Clos de Mazeray\"","white","France","Burgundy","Chardonnay",130,"vinyard we biked through"],
-  [4,"2022","Bouzereau-Gruere St-Aubin 1er Cru \"Cortons\"","white","France","Burgundy","Chardonnay",81,""],
-  [5,"2022","Les Parcellaires Saint-Aubin \"En L'Ebaupin\"","white","France","Burgundy","Chardonnay",77,""],
-  [6,"2020","Denogent Pouilly-Fuisse \"La Croix Ville Vignes\"","white","France","Burgundy","Chardonnay",63,""],
-  [7,"2022","Domaine Denis Pere et Fils Pernand-Vergelesses","white","France","Burgundy","Chardonnay",45,""],
-  [8,"2023","Alain Chavy Bourgogne","white","France","Burgundy","Chardonnay",30,""],
-  [9,"2023","Larochette Macon-Fuisse \"La Grande Bruyere\"","white","France","Burgundy","Chardonnay",24,""],
-  [10,"2023","Regnard Bourgogne blanc","white","France","Burgundy","Chardonnay",30,""],
-  [11,"2023","Domaine des Tourons Macon Charney","white","France","Burgundy","Chardonnay",23,""],
-  [12,"2024","Domaine des Tourons Macon Charney","white","France","Burgundy","Chardonnay",18,""],
-  [13,"2023","Renaud Macon Villages","white","France","Burgundy","Chardonnay",22,""],
-  [14,"2022","Macon Verze","white","France","Burgundy","Chardonnay",23,""],
-  [16,"2024","Crena Riviera Ligure","white","Italy","Liguria","Vermentino",32,""],
-  [17,"2023","Gheddo \"Tinaar\" Blanco","white","Italy","Piedmont","Nascetta/Arneis",30,""],
-  [18,"2022","Bruno Giacometto Erbaluce di Caluso","white","Italy","Piedmont","Erbaluce",30,""],
-  [19,"2023","Punica Samas","white","Italy","Sardinia","Vermentino/Chardonnay",23,""],
-  [20,"2023","Velonosi Offida","white","Italy","Offida","Pecorino",22,""],
-  [21,"2024","Chateau Saint Jean \"Les Vannades\"","rose","France","Provence","Grenache/Cinsault",20,""],
-  [23,"2016","Marie Noelle Ledru Champagne Cuvee Du Goute","white","France","Champagne","Pinot Noir",292,"sparkling/wine tip"],
-  [24,"2015","Pol Roger Sir Winston Churchill","white","France","Champagne","Pinot Noir/Chardonnay",276,"sparkling/wine tip"],
-  [25,"2016","Bereche & Fils AY Grand Cru Extra Brut","white","France","Champagne","Pinot Noir/Chardonnay",251,"sparkling/wine tip"],
-  [26,"2013","Taittinger Comtes de Champagne Blanc de Blancs","white","France","Champagne","Chardonnay",190,"sparkling Paris duty free"],
-  [27,"2016","Pol Roger Vintage","white","France","Champagne","Pinot Noir/Chardonnay",150,"sparkling"],
-  [28,"2016","Copinet \"Cuvee Leonard\" Blanc de Blancs","white","France","Champagne","Chardonnay",67,"sparkling"],
-  [29,"n/a","Gimonnet-Gonet L'Origine Grand Cru","white","France","Champagne","Chardonnay",55,"sparkling"],
-  [30,"n/a","Gimonnet-Gonet Rose L'Eclat","rose","France","Champagne","Chardonnay/Pinot Noir",60,"sparkling"],
-  [31,"2017","Jean Milan Grande Reserve Grand Cru","white","France","Champagne","Chardonnay",85,"sparkling"],
-  [32,"2015","Palmer \"Grands Terroirs\"","white","France","Champagne","Chard/Pinot Noir & Meunier",82,"sparkling/Frankfurt"],
-  [33,"2011","Waris-Larmandier Grand Cru Blanc de Blancs","white","France","Champagne","Chardonnay",80,"sparkling/Zurich"],
-  [34,"2014-21","Pierre Gimonnet & Fils \"Cuis 1er Cru\"","white","France","Champagne","Chardonnay",0,"sparkling gift from Beth"],
-  [35,"n/a","Champagne Henriot","rose","France","Champagne","Chardonnay/Pinot Noir",65,"sparkling"],
-  [36,"n/a","Lambert Cremant de Loire","white","France","Loire","Chardonnay/Chenin Blanc",26,"sparkling"],
-  [37,"n/a","Laurens Blanquette Limoux","white","France","Limoux","Mauzac/Chard/Chen. Blanc",24,"sparkling"],
-  [38,"n/a","Bonnamy Cremant de Loire","white","France","Loire","Chardonnay/Chenin Blanc",18,"sparkling"],
-  [39,"2020","Luigi Giordano Nebbiolo Rose Brut Nature","rose","Italy","Piedmont","Nebbiolo",46,"sparkling"],
-  [40,"2019","Argyle Vintage","white","USA","Oregon","3 Traditional",22,"sparkling"]
+  [1,1,"2023","nuits st george \"Clos D'Arlot\" 1er cru","white","France","Burgundy","Chardonnay",168,"vila vinoteca barcelona"],
+  [2,3,"2022","Pierre Mayeul Beaune 1er Cru \"Clos des Mouches\"","white","France","Burgundy","Chardonnay",140,""],
+  [3,1,"2019","Jacques Prieur Meursault \"Clos de Mazeray\"","white","France","Burgundy","Chardonnay",130,"vinyard we biked through"],
+  [4,2,"2022","Bouzereau-Gruere St-Aubin 1er Cru \"Cortons\"","white","France","Burgundy","Chardonnay",81,""],
+  [5,2,"2022","Les Parcellaires Saint-Aubin \"En L'Ebaupin\"","white","France","Burgundy","Chardonnay",77,""],
+  [6,3,"2020","Denogent Pouilly-Fuisse \"La Croix Ville Vignes\"","white","France","Burgundy","Chardonnay",63,""],
+  [7,4,"2022","Domaine Denis Pere et Fils Pernand-Vergelesses","white","France","Burgundy","Chardonnay",45,""],
+  [8,3,"2023","Alain Chavy Bourgogne","white","France","Burgundy","Chardonnay",30,""],
+  [9,3,"2023","Larochette Macon-Fuisse \"La Grande Bruyere\"","white","France","Burgundy","Chardonnay",24,""],
+  [10,5,"2023","Regnard Bourgogne blanc","white","France","Burgundy","Chardonnay",23,""],
+  [11,1,"2023","Domaine desTourons Macon Charnay","white","France","Burgundy","Chardonnay",18,""],
+  [12,3,"2024","Domaine desTourons Macon Charnay","white","France","Burgundy","Chardonnay",18,""],
+  [13,1,"2023","Renaud Macon Villages","white","France","Burgundy","Chardonnay",22,""],
+  [14,2,"2022","Macon Verze","white","France","Burgundy","Chardonnay",23,""],
+  [16,4,"2024","Crena Riviera Ligure","white","Italy","Liguria","Vermentino",32,""],
+  [17,6,"2023","Gheddo \"Tinaar\" Blanco","white","Italy","Piedmont","Nascetta/ Arneis",30,""],
+  [18,2,"2022","Bruno Giacometto Erbaluce di Caluso","white","Italy","Piedmont","Erbaluce",30,""],
+  [19,3,"2023","Punica Samas","white","Italy","Sardinia","vermentino/chardonnay",23,""],
+  [20,2,"2023","Velonosi Offida","white","Italy","Offida","pecorino",22,""],
+  [21,2,"2024","Chateau Saint Jean \"Les Vannades\"","rose","France","Provence","Grenache/Cinsault",20,""],
+  [23,1,"2016","Marie Noelle Ledru Champagne Cuvee Du Goulte","white","France","Champagne","Pinot noir",292,"sparkling/wine tip"],
+  [24,1,"2015","Pol Roger Sir Winston Churchill","white","France","Champagne","Pinot Noir/Chardonnay",276,"sparkling/wine tip"],
+  [25,1,"2016","Bereche & Fils AY Grand Cru Extra Brut","white","France","Champagne","Pinot Noir/ Chardonnay",251,"sparkling/wine tip"],
+  [26,1,"2013","Taittinger Comtes de Champagne Blanc de Blancs","white","France","Champagne","Chardonnay",190,"sparkling/ Paris duty free"],
+  [27,0,"2016","Pol Roger Vintage","white","France","Champagne","Pinot Noir/Chardonnay",150,"sparkling"],
+  [28,5,"2016","Copinet \"Cuvee Leonard\" Blanc de Blancs","white","France","Champagne","Chardonnay",67,"sparkling"],
+  [29,5,"n/a","Gimonnet-Gonet L'Origine Grand Cru","white","France","Champagne","Chardonnay",55,"sparkling"],
+  [30,1,"n/a","Gimonnet-Gonet Rose L'Eclat","rose","France","Champagne","Chardonnay/Pinot Noir",60,"sparkling"],
+  [31,1,"2017","Jean Milan Grande Reserve Grand Cru","white","France","Champagne","Chardonnay",85,"sparkling"],
+  [32,1,"2015","Palmer \"Grands Terroirs\"","white","France","Champagne","Chard/Pinot noir&meunier",82,"sparkling/Frankfurt"],
+  [33,1,"2011","Waris-Larmandier Grand Cru Blanc de Blancs","white","France","Champagne","Chardonnay",80,"sparkling/Zurich"],
+  [34,1,"2014-21","Pierre Gimonnet & Fils \"Cuis 1er Cru\"","white","France","Champagne","Chardonnay",0,"sparkling/ gift from Beth"],
+  [35,1,"n/a","Champagne Henriot","rose","France","Champagne","Chardonnay/pinot noir",65,"sparkling"],
+  [36,1,"n/a","Lambert Cremant de Loire","white","France","Loire","Chardonnay/chenin blanc",26,"sparkling"],
+  [37,1,"n/a","Laurens Blanquette Limoux","white","France","Limoux","mauzac/Chard/Chen.blanc",24,"sparkling"],
+  [38,1,"n/a","Bonnamy Cremant de Loire","white","France","Loire","Chardonnay/chenin blanc",18,"sparkling"],
+  [39,2,"2020","Luigi Giordano Nebbiolo Rose Brut Nature","rose","Italy","Piedmont","Nebbiolo",46,"sparkling"],
+  [40,1,"2019","Argyle Vintage","white","USA","Oregon","3 traditional",22,"sparkling"],
+  [42,2,"2023","Catain-Gagnerot Echezeaux Grand cru","red","France","Burgundy","pinot noir",207,""],
+  [43,6,"2023","Sigaut Chambolle-Musigny 1er cru \"Les Groseilles\"","red","France","Burgundy","pinot noir",171,""],
+  [44,3,"2021","Pierre Mayeul Corton Grand Cru \"Marachaudes\"","red","France","Burgundy","pinot noir",153,""],
+  [45,6,"2023","Sigaut Chambolle-Musigny \"Les Bussieres\"","red","France","Burgundy","pinot noir",126,""],
+  [46,2,"2021","Pierre Mayeul Nuits St. Georges 1er cru \"Les Calles\"","red","France","Burgundy","pinot noir",119,""],
+  [47,6,"2020","Bouchard Pommard Rugiens 1er cru","red","France","Burgundy","pinot noir",108,""],
+  [48,1,"2021","Pierre Mayeul Pommard 1er Cru \"Clos des Verger\"","red","France","Burgundy","pinot noir",90,""],
+  [49,1,"2022","Edouard Conturon Nuits St. Georges \"Aux Allots\"","red","France","Burgundy","pinot noir",110,"Paris fancy shop"],
+  [50,1,"2023","Maxime Cheurlin Noellat Gevrey-Chambertin","red","France","Burgundy","pinot noir",91,"vila vinoteca barcelona"],
+  [51,5,"2021","Loups Moray-Saint-Denis \"Les Herboutes\"","red","France","Burgundy","pinot noir",86,""],
+  [52,1,"2019","Bouchard 1er cru Volnay \"En Chevet\"","red","France","Burgundy","pinot noir",81,""],
+  [53,2,"2021","Louis Jadot Beaune 1er Cru Boucherettes \"Heritiers\"","red","France","Burgundy","pinot noir",80,"vinyard in the photo"],
+  [54,4,"2022","Guellec-Ducouet Gevrey-Chambertin \"Les Jeunes Rois\"","red","France","Burgundy","pinot noir",77,""],
+  [55,6,"2023","Girard Volnay Vieilles Vignes","red","France","Burgundy","pinot noir",72,""],
+  [56,2,"2018","Bouchard Beaune Greves 1er cre","red","France","Burgundy","pinot noir",68,""],
+  [57,2,"2023","Domaine du Prieure Volnay","red","France","Burgundy","pinot noir",63,""],
+  [58,1,"2022","Paul Benoit Les Cents Vignes Premier Cru","red","France","Burgundy","pinot noir",60,"costco"],
+  [59,1,"2019","Bouchard Nuits Saint-Georges","red","France","Burgundy","pinot noir",58,""],
+  [60,2,"2022","Captain-Gagnerot Savigny-les-Beaune 1er cru \"Les Charm\"","red","France","Burgundy","pinot noir",54,""],
+  [61,1,"2018","La Pousse d'OR Clos de Tavannes Santenay 1er Cru","red","FRance","Burgundy","pinot noir",81,""],
+  [62,1,"2022","Danjean Berthoux Givry 1er Cru \"Clos du Cras Long\"","red","France","Burgundy","pinot noir",50,""],
+  [63,0,"2020","Maison Shaps Volnay","red","France","Burgundy","pinot noir",48,""],
+  [64,4,"2020","Jaffelin Monthelie Taupine 1er cru","red","France","Burgundy","pinot noir",45,""],
+  [65,1,"2020","Moissenet-Bonnard Pommard \"Les Petits Noizons\"","red","France","Burgundy","pinot noir",42,""],
+  [66,1,"2021","Moissenet-Bonnard Pommard \"Les Cras\"","red","France","Burgundy","pinot noir",38,""],
+  [67,4,"2023","Captain Gagnerot Bourgogne","red","France","Burgundy","pinot noir",33,""],
+  [68,3,"2022","Domaine Denis Bourgogne","red","France","Burgundy","pinot noir",27,""],
+  [69,3,"2023","R. Dubois Bourgogne Cote D'Or","red","France","Burgundy","pinot noir",30,""],
+  [71,0,"1999","Jaboulet Aine Hermitage La Chapelle","red","France","Rhone","syrah",370,"vila vinoteca barcelona"],
+  [72,1,"2009","Chateau Leoville Poyferre St Julien","red","France","Bordeaux","Cab. Sauv/merlot/etc",283,"Jason"],
+  [73,1,"2003","Chateau Cos d'Estournel","red","France","Bordeaux","Cab Sauvignon/",258,"Jason"],
+  [74,1,"2010","Chateau Rauzan Segla Margaux","red","France","Bordeaux","cab Sauv/merlot/etc",224,"Jason"],
+  [75,1,"1989","Chateau Leoville Barton st Julien","red","France","Bordeaux","Cab sauv/merlot",219,"Jason"],
+  [76,6,"2005","Chateau Lagrange St. Julien","red","France","Bordeaux","Cab. Sauv/merlot",153,""],
+  [77,2,"2015","Chateau Pontet-Canet Pauillac Grand Cru Classe","red","France","Pauillac","Cab. Sauv/merlot",144,""],
+  [78,1,"2016","Manoncourt Petit Figeac Grand Cru","red","France","St Emilion","Cab. Franc/Cab. Sauv/Merl",120,""],
+  [79,3,"2016","Chateau LaGrange St Emilion","red","France","Bordeaux","Cab. Sauv/merlot",108,""],
+  [80,4,"2016","Chateau Giscours Margaux","red","France","Bordeaux","Cab Sauv/merlot",108,""],
+  [81,5,"2016","Langoa Barton St-Julien","red","France","Bordeaux","CabS/Merlot/CabF",90,""],
+  [82,6,"2020","Petit Figeac St-Emillon Grand Cru","red","France","Bordeaux","Cab Franc/Cab sauv/Merlot",90,""],
+  [83,3,"2014","Chateau LaGrange","red","France","Bordeaux","Cab. Sauv/merlot",81,""],
+  [84,1,"2015","Pagodes De Cos Saint-Estephe","red","France","Bordeaux","merlot/cab.sauv/petitverdot",81,""],
+  [85,5,"2020","Les Griffons de Pichon Baron Pauliac","red","France","Bordeaux","merlot/cab/petit verdot",63,""],
+  [86,3,"2018","Poesia St. Emilion Grand Cru","red","France","Bordeaux","merlot/cab franc",50,""],
+  [87,5,"2018","Dame de Malescot Margaux","red","France","Bordeaux","Cab Sav/Merlot/Cab franc",41,""],
+  [88,3,"2018","D'Aiguilhe Comtes Von Neipperg","red","France","Bordeaux","merlot/cab. franc",35,""],
+  [89,3,"2018","Chateau La Cardonne Medoc","red","France","Bordeaux","Cab.Sauv/merlot/petit verdo",27,""],
+  [90,4,"2018","Chateau Haut Barrail Medoc","red","France","Bordeaux","merlot/cab sauvignon",22,""],
+  [91,1,"2020","Chateau Boutisse grand cru","red","France","St Emilion","merlot/cab sauvignon",40,"gift from Nikita"],
+  [92,1,"2020","Chateau Cormeil-Figeac grand cru","red","France","St. Emilion","merlot/cab franc",29,"costco"],
+  [93,0,"2020","Roche-Guillon Fleurie","red","France","Beaujolais","gamay",28,""],
+  [94,1,"2022","Notre Dame des Pallieres gigondas les Mourres","red","France","Rhone","grenache/syrah/mourvedre",27,"near CDP"],
+  [95,1,"2016","The Courier","red","France","Catalanes","grenache/carignan",30,""],
+  [96,1,"2021","Chateau De Gaudieu","red","France","CDP","grenache/syrah/mourvedre",24,"costco"],
+  [97,3,"2023","Leyre-Loup Fleurie","red","France","Beaujolais","gamay",23,""],
+  [98,3,"2020","Benedetti Villes Vignes","red","France","Rhone","grenache/syrah/shiraz",15,""],
+  [100,1,"2011","Bruno Giacosa Barbaresco Asili Riserva","red","Italy","Piedmont","Nebbiolo",355,"wine tip"],
+  [101,1,"2016","Montevertine Pergole Torte","red","Italy","Tuscany","Sangiovese",353,"wine tip"],
+  [102,1,"2015","Bartolo Mascarello Barolo","red","Italy","Piedmont","Nebbiolo",326,"wine tip"],
+  [103,1,"2016","Redigaffi","red","Italy","Tuscany","Merlot",312,"wine tip"],
+  [104,0,"2013","Lorenzo Accomasso Barolo Reserva Rochette","red","Italy","Piedmont","Nebbiolo",302,"wine tip"],
+  [105,1,"2021","Giuseppe Rinaldi Barolo","red","Italy","Piedmont","Nebbiolo",269,"wine tip"],
+  [106,1,"2020","Colore","red","Italy","Tuscany","Sangiovese blend",250,"gift from Ross"],
+  [107,1,"2013","Bruno Giacosa barolo Falletto Vigna Le Rocche","red","Italy","Piedmont","Nebbiolo",228,"wine tip"],
+  [108,1,"2021","Giuseppe Mascarello Barolo Perno Santo Stefano","red","Italy","Piedmont","Nebbiolo",172,"Enoteca Costantini"],
+  [109,1,"2021","tignanello","red","Italy","Tuscany","Sangiovese/CabS/CabF",156,""],
+  [110,1,"2019","Montepo Maceone","red","Italy","Tuscany","Sangiovese",152,""],
+  [111,3,"2019","Mantepo Poggio Ferro","red","Italy","Tuscany","Sangiovese",152,""],
+  [112,1,"2019","Mantepo Fontecanese","red","Italy","tuscany","Cabernet Sauvignon",152,""],
+  [113,1,"2019","Borgogno Barolo Cannubi","red","Italy","Piedmont","Nebbiolo",143,""],
+  [114,1,"2022","Guado al Tasso","red","Italy","Tuscany","CabS/CabF/Merlot",134,""],
+  [115,2,"2020","Oddero Barolo Villero","red","Italy","Piedmont","Nebbiolo",117,""],
+  [116,0,"2020","Marroneto Brunello","red","Italy","Tuscany","Sangiovese",126,""],
+  [117,1,"2016","Masi Mazzano Amarone Classico","red","Italy","Veneto","Corvina",119,""],
+  [118,6,"2021","Oddero Barolo Villero","red","Italy","Piedmont","Nebbiolo",117,""],
+  [119,2,"2021","Pupille Saffredi","red","ITALY","tuscany","CabS?Merlot",117,""],
+  [120,2,"2021","Elio Grasso Barolo Ginestra Casa Mate","red","Italy","Piedmont","Nebbiolo",100,""],
+  [121,4,"2021","Roccheviberti Barolo \"Rocche di Castiglione\"","red","Italy","Piedmont","Nebbiolo",99,""],
+  [122,1,"2021","Michele Chiarlo Barbaresco Asili","red","Italy","Piedmont","Nebbiolo",96,""],
+  [123,1,"2021","Oddero Barbarbaresco Gallina","red","Italy","Piedmont","Nebbiolo",85,""],
+  [124,2,"2021","Corino Barolo Rocche Annunziata","red","Italy","Piedmont","Nebbiolo",81,""],
+  [125,2,"2019","Poggione Brunello","red","Italy","Tuscany","Sangiovese",72,""],
+  [126,1,"2019","Barbi Brunello","red","Italy","Tuscany","Sangiovese",72,""],
+  [127,2,"2020","Palazzone Brunello","red","Italy","Tuscany","Sangiovese",72,""],
+  [128,2,"2018","Cascina Baricchi Barbaresco \"Rose delle Casasse\"","red","Italy","Piedmont","Nebbiolo",68,"zurich"],
+  [129,3,"2021","Giordano Barbaresco Asili","red","Italy","Piedmont","Nebbiolo",66,""],
+  [130,5,"2019","San Biagio Barolo Galina","red","Italy","Piedmont","Nebbiolo",63,""],
+  [131,2,"2019","Pecchenino Barolo Bussia","red","Italy","Piedmont","Nebbiolo",63,""],
+  [132,3,"2020","Ciacci Piccolomini Brunello","red","Italy","Tuscany","Sangiovese",63,""],
+  [133,3,"2022","Tua Rita Giusto di Notri","red","Italy","Tuscany","Cabernet Sauvignon",63,""],
+  [134,1,"2019","Ratti Barolo Marcenasco","red","Italy","Piedmont","Nebbiolo",60,"costco"],
+  [135,1,"2016","La Spinona Barbaresco \"Bricco Faset\"","red","Italy","Piedmont","Nebbiolo",54,""],
+  [136,1,"2019","Sori Paitin Barbaresco","red","Italy","Piedmont","Nebbiolo",54,""],
+  [137,1,"2016","Batasiolo Barolo Bussia","red","Italy","Piedmont","Nebbiolo",52,""],
+  [138,3,"2019","Castello Neive Barbaresco St. Stefano","red","Italy","Piedmont","Nebbiolo",50,""],
+  [139,2,"2019","Cantina Massara Barolo del Commune di Verduno","red","Italy","Piedmont","Nebbiolo",50,""],
+  [140,2,"2020","Massara Barolo","red","Italy","Piedmont","Nebbiolo",48,""],
+  [141,2,"2016","Poderi Garona Boca","red","Italy","Piedmont","Nebbiolo/Vespolina/",40,""],
+  [142,2,"2021","Ferrando Canavese Rosso","red","Italy","Piedmont","Nevviolo/Barbera",24,""],
+  [143,3,"2021","Bibi Graetz Testamatta","red","Italy","Tuscany","sangiovese",63,""],
+  [144,5,"2019","Il Chiosso Ghemme","red","Italy","Tuscany","Nebbiolo",41,""],
+  [145,6,"2021","San Felice Pugnitello","red","Italy","Tuscany","Pugnitello",36,""],
+  [146,5,"2020","Cava d'Onice Rosso di Montalcino","red","Italy","Tuscany","sangiovese",33,""],
+  [147,4,"2021","Rocca Frassinello Sughere","red","Italy","Tuscany","Sangiovese/CabS/Merlot",31,""],
+  [148,1,"2022","Carretta Langhe Nebbiolo","red","Italy","Piedmont","nebbiolo",22,""],
+  [149,4,"2023","Angelo Negro Lange Nebbiolo \"Angelin\"","red","Italy","Piedmont","nebbiolo",22,""],
+  [150,4,"2022","Marchesi Barolo Lange Nebbiolo \"Sbirolo\"","red","Italy","Piedmont","nebbiolo",21,""],
+  [151,0,"2020","San Biagio Lange Nebbiolo \"Ad Majora\"","red","Italy","Piedmont","Nebbiolo",0,"gift from Ross"],
+  [152,0,"2021","Grascete II Carrio","red","Italy","Tuscany","sangiovese/cab.s/merlot",20,""],
+  [153,1,"2018","Mastroberardino taurasi","red","Italy","Campania","anglianico",67,"\"Italian Legend\""],
+  [154,3,"2019","Mastroberardino taurasi","red","Italy","Campania","anglianico",42,"\"Italian Legend\""],
+  [155,1,"2020","Statella etna pettinociarelle","red","Italy","Etna","nerello mascalese",30,"zurich"],
+  [156,4,"2021","Pepi Lignana Poggio Colombi","red","Italy","Tuscany","Cab Sauv",22,""],
+  [157,3,"2021","Titignano Turlo","red","Italy","Umbria","sangiovese/cab s./merlot",22,""],
+  [159,1,"2015","Allende Aurus","red","Spain","Rioja","Tempranillo/Graciano",200,"Vila Viniteca BCN"],
+  [160,1,"2023","Cellar Mas Doix Doix","red","Spain","Priorat","Carignan/Grenache",104,"Barcelona duty free"],
+  [161,2,"2016","Matarromera Gran Reserva","red","Spain","Ribera","Tempranillo",85,"Madrid/Barcelona duty free"],
+  [162,1,"2015","Ricardo Dumas Gran Reserva","red","Spain","Ribera","Tempranillo",80,"Madrid"],
+  [163,1,"2014","Marques de Alvia Gran Reserva","red","Spain","Ribera","Tempranillo",80,"Madrid"],
+  [164,1,"2016","La Rioja Alta Gran Reserva 904","red","Spain","Rioja","Tempranillo/Graciano",80,"costco"],
+  [165,1,"2016","Valduero 6 anos Reserva","red","Spain","Ribera","Tempranillo",73,""],
+  [166,0,"2016","Ribera Del Duero Reserva Corimbo 1","red","Spain","Ribera","Tempranillo",70,"Bcn duty free"],
+  [167,2,"2018","La Horra Corimbo I Reserva Ribera del Duero","red","Spain","Ribera","Tempranillo",61,"BCN duty free"],
+  [168,1,"2021","Gran Resalte Ribera Del Duero","red","Spain","Ribera","Tempranillo",67,""],
+  [169,6,"2019","Quinta Sardonia Sardon De Duero","red","Spain","Ribera","Tempranillo",54,""],
+  [170,4,"2016","Jesus Yllera","red","Spain","Ribera","cab. s/merlot/tempranillo",26,""],
+  [171,3,"2022","Finca La Mata","red","Spain","Ribera","Tempranillo",23,""],
+  [172,1,"2021","Teso la Monja Romanico","red","Spain","valdefinjas","tinta del toro",19,""],
+  [173,3,"2024","Soto Del Vicario Go de Godello","white","Spain","Bierzo","Godello",17,""],
+  [174,1,"2020","San Pedro Cabo de Hornos","red","Chile","Cachapoal","Cabernet",65,"Bought in Santiago"],
+  [175,1,"2019","Salentein \"Las Tunas\"","red","Argentina","Mendoza","Malbec",55,"bought in B.A./ Barolo?"],
+  [176,2,"2021","Bodega Aleanna Gran Enemigo \"Gualtallary\"","red","Argentina","Mendoza","Cabernet Franc",37,""],
+  [178,2,"2022","Peter Michael \"L'esprit des Pavots\"","red","USA","Sonoma/Napa","Bordeaux Blend",135,""],
+  [179,1,"2021","Arkenstone","red","USA","Napa","Cabernet Sauvignon",112,""],
+  [180,1,"2019","Trujillo Cab Morisoli","red","USA","Napa","Cabernet Sauvignon",104,""],
+  [181,1,"2019","Neal Howell Mountain","red","USA","Napa","Cabernet Sauvignon",96,""],
+  [182,1,"2021","Hess Lion Tamer","red","USA","Napa","Cab Malbec Sirah",48,""],
+  [183,3,"2022","Drouhin Pinot Noir Eola Amity Hills \"Roserock\"","red","USA","Oregon","pinot noir",44,""],
+  [184,1,"2022","Cristom \"Mt. Jefferson Cuvee\"","red","USA","Oregon","pinot noir",38,"costco"],
+  [185,4,"2021","Amulet Cab","red","USA","Napa","Cabernet Sauvignon",36,""],
+  [186,1,"2016","Nottely","red","USA","N. Carolina","Cabernet",35,""]
 ];
 
 const OCCASIONS = [
@@ -321,33 +464,33 @@ function normalise(o) {
     color: o.color, country: o.country || "", region: o.region || "Unfiled",
     grape: o.grape || "", cost: Number(o.cost) || 0, notes: notes,
     style: styleOf(o.color, sparkling), sparkling: sparkling,
-    added: !!o.added,
+    added: !!o.added, qty: o.qty != null ? Number(o.qty) : 1,
     note: notes.replace(/sparkling\s*\/?\s*/i, "").trim()
   };
 }
 
 const BASE = RAW.map(function (r) {
-  return normalise({ id: r[0], vintage: r[1], name: r[2], color: r[3], country: r[4], region: r[5], grape: r[6], cost: r[7], notes: r[8] });
+  return normalise({ id: r[0], qty: r[1], vintage: r[2], name: r[3], color: r[4], country: r[5], region: r[6], grape: r[7], cost: r[8], notes: r[9] });
 });
 
 function loadStore() {
   try {
     const raw = window.localStorage.getItem(KEY);
     const s = raw ? JSON.parse(raw) : {};
-    return { log: s.log || {}, added: s.added || [] };
-  } catch (e) { return { log: {}, added: [] }; }
+    return { log: s.log || {}, added: s.added || [], consumed: s.consumed || {}, overrides: s.overrides || {} };
+  } catch (e) { return { log: {}, added: [], consumed: {}, overrides: {} }; }
 }
 
-const EMPTY_DRAFT = { name: "", vintage: "", region: "", country: "", grape: "", cost: "", notes: "", style: "White" };
+const EMPTY_DRAFT = { name: "", vintage: "", region: "", country: "", grape: "", cost: "", notes: "", style: "White", qty: "1" };
 
 class Component extends DCLogic {
   state = (function () {
     const s = loadStore();
     return {
       tab: "cellar", query: "", type: "All", regions: [], price: "All", minRating: 0,
-      sort: "price", modal: null, target: null, occasion: "aperitivo",
+      sort: "price", modal: null, target: null, occasion: "aperitivo", editingId: null,
       draftRating: 0, draftNote: "", draft: Object.assign({}, EMPTY_DRAFT),
-      addHint: "", log: s.log, added: s.added
+      addHint: "", log: s.log, added: s.added, consumed: s.consumed, overrides: s.overrides
     };
   })();
 
@@ -382,13 +525,28 @@ class Component extends DCLogic {
     this.setState(patch);
     const next = {
       log: patch.log || this.state.log,
-      added: patch.added || this.state.added
+      added: patch.added || this.state.added,
+      consumed: patch.consumed || this.state.consumed,
+      overrides: patch.overrides || this.state.overrides
     };
     try { window.localStorage.setItem(KEY, JSON.stringify(next)); } catch (e) {}
   }
 
+  /* Bottles still on hand: the sheet's qty minus whatever's been logged as
+     finished through the app since import, floored at 0. */
+  remaining(w) {
+    return Math.max(0, w.qty - (this.state.consumed[w.id] || 0));
+  }
+
   all() {
-    return BASE.concat(this.state.added.map(normalise));
+    const overrides = this.state.overrides;
+    function applyOverride(w) {
+      const o = overrides[w.id];
+      return o ? normalise(Object.assign({}, w, o)) : w;
+    }
+    const baseList = BASE.map(applyOverride);
+    const addedList = this.state.added.map(function (a) { return applyOverride(normalise(a)); });
+    return baseList.concat(addedList);
   }
 
   /* ── filtering ─────────────────────────────────────────── */
@@ -413,12 +571,12 @@ class Component extends DCLogic {
     const self = this, log = this.state.log;
     const inCellar = this.state.tab === "cellar";
     let list = this.all().filter(function (w) {
-      const done = !!log[w.id];
-      if (inCellar ? done : !done) return false;
-      if (!inCellar && (log[w.id].rating || 0) < self.state.minRating) return false;
+      const rem = self.remaining(w);
+      if (inCellar ? rem <= 0 : rem > 0) return false;
+      if (!inCellar && ((log[w.id] && log[w.id].rating) || 0) < self.state.minRating) return false;
       return self.matches(w);
     });
-    if (!inCellar) return list.sort(function (a, b) { return (log[b.id].at || 0) - (log[a.id].at || 0); });
+    if (!inCellar) return list.sort(function (a, b) { return ((log[b.id] && log[b.id].at) || 0) - ((log[a.id] && log[a.id].at) || 0); });
     const s = this.state.sort;
     return list.sort(function (a, b) {
       if (s === "price") return b.cost - a.cost;
@@ -469,9 +627,9 @@ class Component extends DCLogic {
   }
 
   picksFor(occ) {
-    const self = this, log = this.state.log;
+    const self = this;
     return this.all()
-      .filter(function (w) { return !log[w.id]; })
+      .filter(function (w) { return self.remaining(w) > 0; })
       .map(function (w) { return { w: w, n: self.score(w, occ) }; })
       .sort(function (a, b) { return b.n - a.n; })
       .slice(0, 3)
@@ -487,19 +645,27 @@ class Component extends DCLogic {
     return { bg: "transparent", fg: "var(--color-neutral-800)", border: "var(--color-divider)" };
   }
 
-  saveBottle() {
+  saveDraft() {
     const d = this.state.draft;
     if (!d.name.trim()) { this.setState({ addHint: "A producer or bottle name is required." }); return; }
-    const id = "new-" + Date.now();
+    const n = parseInt(d.qty, 10);
     const rec = {
-      id: id, name: d.name.trim(), vintage: d.vintage.trim() || "n/a",
+      name: d.name.trim(), vintage: d.vintage.trim() || "n/a",
       region: d.region.trim() || "Unfiled", country: d.country.trim(),
       grape: d.grape.trim(), cost: Number(String(d.cost).replace(/[^0-9.]/g, "")) || 0,
-      notes: d.notes.trim(), added: true,
+      notes: d.notes.trim(),
       color: d.style === "Rosé" ? "rose" : d.style === "Red" ? "red" : "white",
-      sparkling: d.style === "Sparkling"
+      sparkling: d.style === "Sparkling",
+      qty: isNaN(n) ? 1 : Math.max(0, n)
     };
-    this.persist({ added: this.state.added.concat([rec]), modal: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "", tab: "cellar" });
+    if (this.state.editingId != null) {
+      const overrides = Object.assign({}, this.state.overrides);
+      overrides[this.state.editingId] = rec;
+      this.persist({ overrides: overrides, modal: null, editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "" });
+    } else {
+      const rec2 = Object.assign({ id: "new-" + Date.now(), added: true }, rec);
+      this.persist({ added: this.state.added.concat([rec2]), modal: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "", tab: "cellar" });
+    }
   }
 
   confirmFinish() {
@@ -507,27 +673,47 @@ class Component extends DCLogic {
     if (!w) return;
     const log = Object.assign({}, this.state.log);
     log[w.id] = { at: Date.now(), rating: this.state.draftRating, note: this.state.draftNote.trim() };
-    this.persist({ log: log, modal: null, target: null, draftRating: 0, draftNote: "" });
+    const consumed = Object.assign({}, this.state.consumed);
+    consumed[w.id] = (consumed[w.id] || 0) + 1;
+    this.persist({ log: log, consumed: consumed, modal: null, target: null, draftRating: 0, draftNote: "" });
   }
 
+  /* Un-drink the most recently logged bottle of w: give one back to the
+     cellar and drop the tasting note that went with it. */
   unfinish(w) {
+    const consumed = Object.assign({}, this.state.consumed);
+    const cur = Math.max(0, (consumed[w.id] || 0) - 1);
+    if (cur > 0) consumed[w.id] = cur; else delete consumed[w.id];
     const log = Object.assign({}, this.state.log);
     delete log[w.id];
-    this.persist({ log: log });
+    this.persist({ consumed: consumed, log: log });
+  }
+
+  openEdit(w) {
+    this.setState({
+      modal: "add", editingId: w.id, addHint: "",
+      draft: {
+        name: w.name, vintage: w.vintage === "n/a" ? "" : w.vintage,
+        region: w.region === "Unfiled" ? "" : w.region, country: w.country,
+        grape: w.grape, cost: String(w.cost), notes: w.notes,
+        style: styleOf(w.color, w.sparkling), qty: String(w.qty)
+      }
+    });
   }
 
   renderVals() {
     const self = this, st = this.state, log = st.log;
     const all = this.all();
     const inCellar = st.tab === "cellar";
-    const remaining = all.filter(function (w) { return !log[w.id]; });
+    const inStock = all.filter(function (w) { return self.remaining(w) > 0; });
     const list = this.visible();
 
-    const value = remaining.reduce(function (a, w) { return a + w.cost; }, 0);
-    const finishedCount = all.length - remaining.length;
+    const totalBottles = inStock.reduce(function (a, w) { return a + self.remaining(w); }, 0);
+    const value = inStock.reduce(function (a, w) { return a + self.remaining(w) * w.cost; }, 0);
+    const finishedCount = all.length - inStock.length;
 
     /* tabs */
-    const tabs = [["cellar", "In the cellar (" + remaining.length + ")"], ["archive", "Finished (" + finishedCount + ")"]].map(function (t) {
+    const tabs = [["cellar", "In the cellar (" + inStock.length + ")"], ["archive", "Finished (" + finishedCount + ")"]].map(function (t) {
       const on = st.tab === t[0];
       return {
         label: t[1], onClick: function () { self.setState({ tab: t[0] }); },
@@ -576,12 +762,13 @@ class Component extends DCLogic {
       const sparkling = w.sparkling;
       const rose = w.color === "rose";
       const noteText = entry && entry.note ? entry.note : w.note;
+      const rem = self.remaining(w);
       return {
         name: w.name,
         meta: [w.region, w.grape].filter(Boolean).join(" · "),
         price: w.cost === 0 ? "gift" : "$" + w.cost,
         vintageShort: w.vintage === "n/a" ? "NV" : w.vintage.slice(0, 4),
-        style: w.added ? w.style + " · new" : w.style,
+        style: (w.added ? w.style + " · new" : w.style) + (rem > 1 ? " · ×" + rem : ""),
         discBg: sparkling ? "var(--color-accent-200)" : rose ? "var(--color-accent-300)" : "var(--color-accent-2-200)",
         discFg: sparkling ? "var(--color-accent-800)" : rose ? "var(--color-accent-900)" : "var(--color-accent-2-800)",
         tagBg: sparkling ? "var(--color-accent-200)" : rose ? "var(--color-accent-300)" : "var(--color-accent-2-200)",
@@ -590,12 +777,13 @@ class Component extends DCLogic {
         note: noteText,
         hasStars: rating > 0,
         stars: "★★★★★".slice(0, rating) + "☆☆☆☆☆".slice(0, 5 - rating),
-        actionLabel: entry ? "Restore" : "Open",
-        actionBg: entry ? "transparent" : "var(--color-accent)",
-        actionFg: entry ? "var(--color-accent-700)" : "var(--color-accent-100)",
-        onAction: entry
-          ? function () { self.unfinish(w); }
-          : function () { self.setState({ modal: "finish", target: w, draftRating: 0, draftNote: "" }); }
+        onEdit: function () { self.openEdit(w); },
+        actionLabel: inCellar ? "Open" : "Restore",
+        actionBg: inCellar ? "var(--color-accent)" : "transparent",
+        actionFg: inCellar ? "var(--color-accent-100)" : "var(--color-accent-700)",
+        onAction: inCellar
+          ? function () { self.setState({ modal: "finish", target: w, draftRating: 0, draftNote: "" }); }
+          : function () { self.unfinish(w); }
       };
     });
 
@@ -632,6 +820,7 @@ class Component extends DCLogic {
       ["country", "Country", "France", "text"],
       ["grape", "Grape", "Chardonnay", "text"],
       ["cost", "Cost", "68", "numeric"],
+      ["qty", "Quantity", "How many bottles", "numeric"],
       ["notes", "Note", "Where you bought it, who it's for", "text"]
     ];
     const addFields = fieldDefs.map(function (f) {
@@ -658,8 +847,8 @@ class Component extends DCLogic {
       mapRef: function (el) { self.mapEl = el; },
       onMapLoad: function () { self.postMap(); },
       mapHint: st.regions.length ? "Tap a bubble to clear" : "Tap a bubble to filter",
-      summaryLine: remaining.length + " bottles in the cellar · $" + value.toLocaleString() + " at cost",
-      footerLine: "Inventory reads from wine_list.xlsx. Bottles you add and bottles you finish are held on this device until the sheet is written back. Drink-by windows need a Drink-by column in the sheet.",
+      summaryLine: totalBottles + " bottles in the cellar · $" + value.toLocaleString() + " at cost",
+      footerLine: "Inventory reads from wine_list.xlsx. Bottles you add, edit, or finish are held on this device until the sheet is written back. Drink-by windows need a Drink-by column in the sheet.",
       tabs: tabs,
       query: st.query,
       onQuery: function (e) { self.setState({ query: e.target.value }); },
@@ -668,7 +857,10 @@ class Component extends DCLogic {
       metaChips: metaChips,
       hasFilters: !!(st.query || st.type !== "All" || st.regions.length || st.price !== "All" || st.minRating),
       onClearFilters: function () { self.setState({ query: "", type: "All", regions: [], price: "All", minRating: 0 }); },
-      resultLine: list.length + (list.length === 1 ? " bottle" : " bottles"),
+      resultLine: (function () {
+        const n = inCellar ? list.reduce(function (a, w) { return a + self.remaining(w); }, 0) : list.length;
+        return n + (n === 1 ? " bottle" : " bottles");
+      })(),
       sortLabel: inCellar ? sortLabels[st.sort] : "Most recent first",
       onToggleSort: function () { if (inCellar) self.setState({ sort: nextSort[st.sort] }); },
       groups: groups,
@@ -676,17 +868,17 @@ class Component extends DCLogic {
       emptyTitle: inCellar ? "Nothing matches" : "Nothing logged yet",
       emptyBody: inCellar ? "Loosen a filter, or add the bottle you just bought." : "Open a bottle and rate it; it lands here.",
       onSuggest: function () { self.setState({ modal: "suggest" }); },
-      onAdd: function () { self.setState({ modal: "add", addHint: "" }); },
-      onCloseModal: function () { self.setState({ modal: null, target: null }); },
+      onAdd: function () { self.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "" }); },
+      onCloseModal: function () { self.setState({ modal: null, target: null, editingId: null }); },
       stop: function (e) { e.stopPropagation(); },
       modalOpen: !!st.modal,
       isSuggest: st.modal === "suggest",
       isFinish: st.modal === "finish",
       isAdd: st.modal === "add",
-      modalTitle: st.modal === "suggest" ? "What are we drinking?" : st.modal === "add" ? "New bottle" : "Opened",
+      modalTitle: st.modal === "suggest" ? "What are we drinking?" : st.modal === "add" ? (st.editingId != null ? "Edit bottle" : "New bottle") : "Opened",
       modalSub: st.modal === "suggest"
         ? "Pick the occasion; the cellar narrows itself."
-        : st.modal === "add" ? "Added to the cellar straight away." : "Rate it now while it's in the glass.",
+        : st.modal === "add" ? (st.editingId != null ? "Update the details, including how many bottles you have." : "Added to the cellar straight away.") : "Rate it now while it's in the glass.",
       occasions: occasions,
       picks: picks,
       finishName: target ? target.name : "",
@@ -700,7 +892,8 @@ class Component extends DCLogic {
       addStyles: addStyles,
       addHint: st.addHint,
       saveBg: st.draft.name.trim() ? "var(--color-accent)" : "var(--color-neutral-400)",
-      onSaveBottle: function () { self.saveBottle(); }
+      saveLabel: st.editingId != null ? "Save changes" : "Add to cellar",
+      onSaveBottle: function () { self.saveDraft(); }
     };
   }
 }
