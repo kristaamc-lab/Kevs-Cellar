@@ -1,85 +1,154 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kev's Cellar | Global Wine Map</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-
-  <style>
-    #map { height: calc(100vh - 65px); }
-    .marker-cluster-small { background-color: rgba(190, 18, 60, 0.6); }
-    .marker-cluster-small div { background-color: rgba(159, 18, 57, 0.9); color: #fff; font-weight: bold; }
-    .marker-cluster-medium { background-color: rgba(159, 18, 57, 0.6); }
-    .marker-cluster-medium div { background-color: rgba(136, 19, 55, 0.9); color: #fff; font-weight: bold; }
-    .marker-cluster-large { background-color: rgba(136, 19, 55, 0.6); }
-    .marker-cluster-large div { background-color: rgba(76, 5, 25, 0.9); color: #fff; font-weight: bold; }
-  </style>
+<meta charset="utf-8">
+<title>Cellar map</title>
+<script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
+<style>
+  html, body { margin: 0; height: 100%; background: #ebddc5; font-family: "Figtree", system-ui, sans-serif; overflow: hidden; }
+  #map { width: 100%; height: 100%; }
+  text { pointer-events: none; }
+</style>
 </head>
-<body class="bg-slate-950 text-slate-100">
+<body>
+<div id="map"></div>
+<script>
+/* Region centroids for the appellations in the cellar sheet. */
+var PLACES = {
+  "Burgundy":  { lon: 4.85,  lat: 47.05, dir: "sw" },
+  "Champagne": { lon: 4.03,  lat: 49.05, dir: "e" },
+  "Loire":     { lon: 0.70,  lat: 47.40, dir: "w" },
+  "Provence":  { lon: 5.90,  lat: 43.60, dir: "se" },
+  "Limoux":    { lon: 2.22,  lat: 43.05, dir: "sw" },
+  "Liguria":   { lon: 8.70,  lat: 44.15, dir: "e" },
+  "Piedmont":  { lon: 7.75,  lat: 45.10, dir: "ne" },
+  "Sardinia":  { lon: 9.05,  lat: 39.95, dir: "e" },
+  "Offida":    { lon: 13.70, lat: 42.90, dir: "e" },
+  "Oregon":    { offMap: true }
+};
 
-  <header class="border-b border-slate-800 bg-slate-900/90 px-4 py-3 flex items-center justify-between">
-    <div class="flex items-center space-x-3">
-      <a href="index.html" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition text-xs flex items-center gap-2">
-        <i class="fa-solid fa-arrow-left"></i> Back to Inventory
-      </a>
-      <h1 class="text-base font-bold text-white">Global Cellar Map</h1>
-    </div>
-  </header>
+function radiusOf(d) { return 6 + Math.sqrt(d.count) * 4.4; }
 
-  <div id="map"></div>
+/* Labels sit clear of their own bubble: offset from the radius, not a fixed px. */
+function labelPos(d) {
+  var r = radiusOf(d), dir = PLACES[d.region].dir, pad = 6;
+  if (dir === "e") return { x: r + pad, y: 4, anchor: "start" };
+  if (dir === "w") return { x: -(r + pad), y: 4, anchor: "end" };
+  if (dir === "n") return { x: 0, y: -(r + pad + 4), anchor: "middle" };
+  if (dir === "s") return { x: 0, y: r + pad + 11, anchor: "middle" };
+  if (dir === "sw") return { x: -(r * 0.7 + pad), y: r * 0.7 + pad + 8, anchor: "end" };
+  if (dir === "ne") return { x: r * 0.7 + pad, y: -(r * 0.7 + pad + 2), anchor: "start" };
+  return { x: r * 0.7 + pad, y: r * 0.7 + pad + 8, anchor: "start" };
+}
 
-  <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      const map = L.map('map').setView([20, 0], 2);
+var BOX = { type: "MultiPoint", coordinates: [[-3.6, 36.4], [17.0, 51.8]] };
+var HIGHLIGHT = { "France": 1, "Italy": 1, "250": 1, "380": 1 };
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        maxZoom: 19
-      }).addTo(map);
+var state = { regions: [], countries: null };
+var svg, gLand, gDots, projection, path, width = 0, height = 0;
 
-      const markers = L.markerClusterGroup({
-        showCoverageOnHover: false,
-        maxClusterRadius: 40
-      });
+function setup() {
+  var el = document.getElementById("map");
+  svg = d3.select(el).append("svg");
+  gLand = svg.append("g");
+  gDots = svg.append("g");
+  projection = d3.geoMercator();
+  path = d3.geoPath(projection);
+  measure();
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () {
+      if (el.clientWidth === width && el.clientHeight === height) return;
+      measure(); drawLand(); drawDots();
+    }).observe(el);
+  } else {
+    window.addEventListener("resize", function () { measure(); drawLand(); drawDots(); });
+  }
+}
 
-      let wines = [];
-      const stored = localStorage.getItem('kevs_cellar_inventory');
-      if (stored) {
-        wines = JSON.parse(stored);
-      } else {
-        try {
-          const res = await fetch('wines.json');
-          wines = await res.json();
-        } catch(e) {
-          console.error("Failed to load map inventory data:", e);
-        }
-      }
+function measure() {
+  var el = document.getElementById("map");
+  width = el.clientWidth || 440;
+  height = el.clientHeight || 300;
+  svg.attr("width", width).attr("height", height);
+  projection.fitExtent([[8, 10], [width - 8, height - 18]], BOX);
+}
 
-      wines.forEach(wine => {
-        if (wine.coordinates && wine.coordinates.lat && wine.coordinates.lng) {
-          const marker = L.marker([wine.coordinates.lat, wine.coordinates.lng]);
-          marker.bindPopup(`
-            <div class="text-slate-900 p-1">
-              <strong class="text-sm font-bold block">${wine.vintage} ${wine.name}</strong>
-              <span class="text-xs text-slate-600 block">${wine.region}, ${wine.country}</span>
-              <span class="text-xs text-rose-700 font-bold block mt-1">${wine.quantity} bottle(s) in inventory</span>
-            </div>
-          `);
-          markers.addLayer(marker);
-        }
-      });
+function drawLand() {
+  if (!state.countries) return;
+  gLand.selectAll("path").data(state.countries.features).join("path")
+    .attr("d", path)
+    .attr("fill", function (d) {
+      var n = (d.properties && (d.properties.name || d.properties.NAME)) || "";
+      return (HIGHLIGHT[n] || HIGHLIGHT[String(d.id)]) ? "#e1eecc" : "#dcd3c4";
+    })
+    .attr("stroke", "#ebddc5")
+    .attr("stroke-width", 1.25);
+}
 
-      map.addLayer(markers);
-    });
-  </script>
+function drawDots() {
+  var pts = state.regions.filter(function (r) {
+    var p = PLACES[r.region];
+    return p && !p.offMap;
+  });
+
+  var g = gDots.selectAll("g.pin").data(pts, function (d) { return d.region; }).join(
+    function (enter) { return enter.append("g").attr("class", "pin"); }
+  );
+  g.selectAll("*").remove();
+  g.attr("transform", function (d) {
+    var p = PLACES[d.region];
+    var xy = projection([p.lon, p.lat]);
+    return "translate(" + xy[0] + "," + xy[1] + ")";
+  }).style("cursor", "pointer")
+    .on("click", function (e, d) { parent.postMessage({ type: "region", region: d.region }, "*"); });
+
+  g.append("circle")
+    .attr("r", radiusOf)
+    .attr("fill", function (d) { return d.active ? "#8c491a" : "#c67139"; })
+    .attr("fill-opacity", function (d) { return d.active ? 1 : 0.82; })
+    .attr("stroke", "#f9f4ed")
+    .attr("stroke-width", 2);
+
+  g.append("text")
+    .attr("y", 4)
+    .attr("text-anchor", "middle")
+    .attr("font-size", 11)
+    .attr("font-weight", 700)
+    .attr("fill", "#fff2eb")
+    .text(function (d) { return d.count; });
+
+  g.append("text")
+    .attr("x", function (d) { return labelPos(d).x; })
+    .attr("y", function (d) { return labelPos(d).y; })
+    .attr("text-anchor", function (d) { return labelPos(d).anchor; })
+    .attr("font-size", 11.5)
+    .attr("font-weight", 600)
+    .attr("fill", function (d) { return d.active ? "#8c491a" : "#474238"; })
+    .text(function (d) { return d.region; });
+
+  var off = state.regions.filter(function (r) { return PLACES[r.region] && PLACES[r.region].offMap; });
+  var note = off.length ? [off.map(function (r) { return r.count + " from " + r.region; }).join(", ") + " — off map"] : [];
+  gDots.selectAll("text.offmap").data(note).join("text")
+    .attr("class", "offmap")
+    .attr("x", 10).attr("y", height - 8)
+    .attr("font-size", 10.5).attr("fill", "#82796a")
+    .text(function (t) { return t; });
+}
+
+window.addEventListener("message", function (e) {
+  if (!e.data || e.data.type !== "cellar") return;
+  state.regions = e.data.regions || [];
+  drawDots();
+});
+
+setup();
+d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json").then(function (topo) {
+  state.countries = topojson.feature(topo, topo.objects.countries);
+  drawLand();
+  drawDots();
+  parent.postMessage({ type: "map-ready" }, "*");
+});
+</script>
 </body>
 </html>
