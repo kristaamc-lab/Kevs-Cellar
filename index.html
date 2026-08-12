@@ -46,6 +46,7 @@
           <h1 style="font-family: var(--font-heading); font-weight: 400; font-size: 38px; line-height: 1.06; letter-spacing: -0.02em; margin: 0 0 var(--space-2);">Kevin&rsquo;s<br>Wine Cellar</h1>
           <div style="font-size: 14px; color: var(--color-neutral-700);">{{ summaryLine }}</div>
         </div>
+        <button type="button" onClick="{{ onOpenLeaderboard }}" title="Leaderboard" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 1px solid var(--color-divider); cursor: pointer; background: var(--color-surface); color: var(--color-accent-700); font-size: 19px; line-height: 1; margin-top: 2px;" style-hover="background: var(--color-neutral-200);">&#127942;</button>
         <button type="button" onClick="{{ onAdd }}" title="Add a bottle" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 0; cursor: pointer; background: var(--color-accent); color: var(--color-accent-100); font-size: 26px; line-height: 1; box-shadow: var(--shadow-sm); margin-top: 2px;" style-hover="background: var(--color-accent-600);">+</button>
       </div>
     </header>
@@ -193,6 +194,31 @@
                 </div>
               </div>
             </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isLeaderboardModal }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: var(--space-2); max-height: 60vh; overflow-y: auto;">
+            <sc-for list="{{ leaderboardItems }}" as="p" hint-placeholder-count="6">
+              <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); display: flex; gap: var(--space-2); align-items: flex-start;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--color-accent-700); flex: none; width: 22px;">{{ p.rank }}</div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-size: 15px; font-weight: 700; line-height: 1.3;">{{ p.name }}</div>
+                  <div style="font-size: 12.5px; color: var(--color-neutral-700); margin-top: 2px;">{{ p.meta }}</div>
+                  <div style="display: flex; align-items: baseline; gap: 6px; margin-top: 4px;">
+                    <span style="font-size: 13px; color: var(--color-accent-600); letter-spacing: 0.08em;">{{ p.stars }}</span>
+                    <span style="font-size: 11px; color: var(--color-neutral-600);">{{ p.ratedCountLabel }}</span>
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none;">
+                  <div style="font-size: 13px; font-weight: 700; color: var(--color-accent-700);">{{ p.price }}</div>
+                  <button type="button" onClick="{{ p.onEdit }}" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 6px 11px; font-size: 11.5px; font-weight: 600; color: var(--color-neutral-700);">Edit</button>
+                </div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ leaderboardEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="text-align: center; padding: var(--space-6) 0; color: var(--color-neutral-600); font-size: 13.5px;">Nothing rated yet — open a bottle from the cellar and rate it.</div>
+            </sc-if>
           </div>
         </sc-if>
 
@@ -645,13 +671,13 @@ class Component extends DCLogic {
   }
 
   /* All wines with at least one real rating, ranked highest average first
-     (ties broken by how many times rated, then name). Respects the same
-     search/type/region/price/rating filters as the other tabs. */
+     (ties broken by how many times rated, then name). Shown in the
+     Leaderboard modal — a fixed all-time view, not filtered by the tabs'
+     search/type/region/price controls. */
   leaderboardList() {
     const self = this;
     return this.all()
-      .filter(function (w) { return self.ratingStats(w).count > 0 && self.matches(w); })
-      .filter(function (w) { return self.ratingStats(w).avg >= self.state.minRating; })
+      .filter(function (w) { return self.ratingStats(w).count > 0; })
       .sort(function (a, b) {
         const sa = self.ratingStats(a), sb = self.ratingStats(b);
         if (sb.avg !== sa.avg) return sb.avg - sa.avg;
@@ -812,9 +838,8 @@ class Component extends DCLogic {
     const self = this, st = this.state, log = st.log;
     const all = this.all();
     const inCellar = st.tab === "cellar";
-    const isLeaderboard = st.tab === "leaderboard";
     const inStock = all.filter(function (w) { return self.remaining(w) > 0; });
-    const list = isLeaderboard ? this.leaderboardList() : this.visible();
+    const list = this.visible();
 
     const totalBottles = inStock.reduce(function (a, w) { return a + self.remaining(w); }, 0);
     const value = inStock.reduce(function (a, w) { return a + self.remaining(w) * w.cost; }, 0);
@@ -823,8 +848,7 @@ class Component extends DCLogic {
     /* tabs */
     const tabs = [
       ["cellar", "In the cellar (" + inStock.length + ")"],
-      ["archive", "Finished (" + finishedCount + ")"],
-      ["leaderboard", "Leaderboard"]
+      ["archive", "Finished (" + finishedCount + ")"]
     ].map(function (t) {
       const on = st.tab === t[0];
       return {
@@ -868,7 +892,7 @@ class Component extends DCLogic {
     }
 
     /* cards */
-    const items = list.map(function (w, idx) {
+    const items = list.map(function (w) {
       const entries = log[w.id] || [];
       const stats = self.ratingStats(w);
       const rating = Math.round(stats.avg);
@@ -882,7 +906,7 @@ class Component extends DCLogic {
         name: w.name,
         meta: [w.region, w.grape].filter(Boolean).join(" · "),
         price: w.cost === 0 ? "gift" : "$" + w.cost,
-        vintageShort: isLeaderboard ? "#" + (idx + 1) : (w.vintage === "n/a" ? "NV" : w.vintage.slice(0, 4)),
+        vintageShort: w.vintage === "n/a" ? "NV" : w.vintage.slice(0, 4),
         style: (w.added ? w.style + " · new" : w.style) + (rem > 1 ? " · ×" + rem : ""),
         discBg: sparkling ? "var(--color-accent-200)" : rose ? "var(--color-accent-300)" : "var(--color-accent-2-200)",
         discFg: sparkling ? "var(--color-accent-800)" : rose ? "var(--color-accent-900)" : "var(--color-accent-2-800)",
@@ -897,7 +921,7 @@ class Component extends DCLogic {
         hasDrunk: totalDrunk > 0,
         drunkLabel: totalDrunk + " finished all-time",
         onEdit: function () { self.openEdit(w); },
-        hasInventoryActions: !isLeaderboard,
+        hasInventoryActions: true,
         onBump: function () { self.bumpQty(w, 1); },
         actionLabel: inCellar ? "Open" : "Restore",
         actionBg: inCellar ? "var(--color-accent)" : "transparent",
@@ -908,7 +932,7 @@ class Component extends DCLogic {
       };
     });
 
-    const groupTitle = isLeaderboard ? "Top rated" : inCellar ? "Bottles" : "Drunk & rated";
+    const groupTitle = inCellar ? "Bottles" : "Drunk & rated";
     const groups = items.length ? [{ title: groupTitle, count: items.length + "", items: items }] : [];
 
     /* modal */
@@ -925,6 +949,20 @@ class Component extends DCLogic {
         price: w.cost === 0 ? "gift" : "$" + w.cost,
         why: occ.why,
         onOpen: function () { self.setState({ modal: "finish", target: w, draftRating: 0, draftNote: "" }); }
+      };
+    }) : [];
+
+    const leaderboardItems = st.modal === "leaderboard" ? this.leaderboardList().map(function (w, idx) {
+      const stats = self.ratingStats(w);
+      const rating = Math.round(stats.avg);
+      return {
+        rank: idx + 1,
+        name: w.name,
+        meta: [w.vintage === "n/a" ? "NV" : w.vintage, w.region, w.grape].filter(Boolean).join(" · "),
+        price: w.cost === 0 ? "gift" : "$" + w.cost,
+        stars: "★★★★★".slice(0, rating) + "☆☆☆☆☆".slice(0, 5 - rating),
+        ratedCountLabel: stats.count > 1 ? "avg of " + stats.count : "1 rating",
+        onEdit: function () { self.openEdit(w); }
       };
     }) : [];
 
@@ -997,17 +1035,20 @@ class Component extends DCLogic {
       hasFilters: !!(st.query || st.type !== "All" || st.regions.length || st.price !== "All" || st.minRating),
       onClearFilters: function () { self.setState({ query: "", type: "All", regions: [], price: "All", minRating: 0 }); },
       resultLine: (function () {
-        if (isLeaderboard) return list.length + (list.length === 1 ? " wine ranked" : " wines ranked");
         const n = inCellar ? list.reduce(function (a, w) { return a + self.remaining(w); }, 0) : list.length;
         return n + (n === 1 ? " bottle" : " bottles");
       })(),
-      sortLabel: isLeaderboard ? "Ranked by rating" : inCellar ? sortLabels[st.sort] : "Most recent first",
+      sortLabel: inCellar ? sortLabels[st.sort] : "Most recent first",
       onToggleSort: function () { if (inCellar) self.setState({ sort: nextSort[st.sort] }); },
       groups: groups,
       showEmpty: list.length === 0,
-      emptyTitle: isLeaderboard ? "Nothing rated yet" : inCellar ? "Nothing matches" : "Nothing logged yet",
-      emptyBody: isLeaderboard ? "Rate a bottle from the cellar and it'll show up here." : inCellar ? "Loosen a filter, or add the bottle you just bought." : "Open a bottle and rate it; it lands here.",
+      emptyTitle: inCellar ? "Nothing matches" : "Nothing logged yet",
+      emptyBody: inCellar ? "Loosen a filter, or add the bottle you just bought." : "Open a bottle and rate it; it lands here.",
       onSuggest: function () { self.setState({ modal: "suggest" }); },
+      onOpenLeaderboard: function () { self.setState({ modal: "leaderboard" }); },
+      leaderboardItems: leaderboardItems,
+      leaderboardEmpty: leaderboardItems.length === 0,
+      isLeaderboardModal: st.modal === "leaderboard",
       onAdd: function () { self.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "" }); },
       onCloseModal: function () { self.setState({ modal: null, target: null, editingId: null }); },
       stop: function (e) { e.stopPropagation(); },
@@ -1015,10 +1056,14 @@ class Component extends DCLogic {
       isSuggest: st.modal === "suggest",
       isFinish: st.modal === "finish",
       isAdd: st.modal === "add",
-      modalTitle: st.modal === "suggest" ? "What are we drinking?" : st.modal === "add" ? (st.editingId != null ? "Edit bottle" : "New bottle") : "Opened",
-      modalSub: st.modal === "suggest"
-        ? "Pick the occasion; the cellar narrows itself."
-        : st.modal === "add" ? (st.editingId != null ? "Update the details, including how many bottles you have." : "Added to the cellar straight away.") : "Rate it now while it's in the glass.",
+      modalTitle: st.modal === "suggest" ? "What are we drinking?"
+        : st.modal === "add" ? (st.editingId != null ? "Edit bottle" : "New bottle")
+        : st.modal === "leaderboard" ? "Leaderboard"
+        : "Opened",
+      modalSub: st.modal === "suggest" ? "Pick the occasion; the cellar narrows itself."
+        : st.modal === "add" ? (st.editingId != null ? "Update the details, including how many bottles you have." : "Added to the cellar straight away.")
+        : st.modal === "leaderboard" ? "Every wine you've rated, ranked by average score."
+        : "Rate it now while it's in the glass.",
       occasions: occasions,
       picks: picks,
       finishName: target ? target.name : "",
