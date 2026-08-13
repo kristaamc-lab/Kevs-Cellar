@@ -47,6 +47,10 @@
           <div style="font-size: 14px; color: var(--color-neutral-700);">{{ summaryLine }}</div>
         </div>
         <button type="button" onClick="{{ onOpenLeaderboard }}" title="Leaderboard" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 1px solid var(--color-divider); cursor: pointer; background: var(--color-surface); color: var(--color-accent-700); font-size: 19px; line-height: 1; margin-top: 2px;" style-hover="background: var(--color-neutral-200);">&#127942;</button>
+        <label title="Scan a label" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 1px solid var(--color-divider); cursor: pointer; background: var(--color-surface); color: var(--color-accent-700); font-size: 19px; line-height: 1; margin-top: 2px; display: flex; align-items: center; justify-content: center; position: relative;">
+          &#128247;
+          <input type="file" accept="image/*" capture="environment" onChange="{{ onScanFile }}" style="position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0;">
+        </label>
         <button type="button" onClick="{{ onAdd }}" title="Add a bottle" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 0; cursor: pointer; background: var(--color-accent); color: var(--color-accent-100); font-size: 26px; line-height: 1; box-shadow: var(--shadow-sm); margin-top: 2px;" style-hover="background: var(--color-accent-600);">+</button>
       </div>
       <div style="display: flex; gap: var(--space-3); margin-top: var(--space-2);">
@@ -746,6 +750,83 @@ class Component extends DCLogic {
     const people = this.state.people.indexOf(name) >= 0 ? this.state.people : this.state.people.concat([name]);
     const companions = this.state.companions.indexOf(name) >= 0 ? this.state.companions : this.state.companions.concat([name]);
     this.persist({ people: people, companions: companions, newCompanionName: "" });
+  }
+
+  /* Loads Tesseract.js from a CDN the first time it's needed (no build step
+     to bundle it, and no point loading OCR code for people who never scan
+     a label). Cached on the instance so repeat scans don't re-fetch it. */
+  ensureTesseract() {
+    if (window.Tesseract) return Promise.resolve();
+    if (this._tesseractLoading) return this._tesseractLoading;
+    this._tesseractLoading = new Promise(function (resolve, reject) {
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/tesseract.js@5/dist/tesseract.min.js";
+      script.onload = function () { resolve(); };
+      script.onerror = function () { reject(new Error("Failed to load OCR library")); };
+      document.head.appendChild(script);
+    });
+    return this._tesseractLoading;
+  }
+
+  /* Wine labels rarely carry any other 4-digit number, so the first
+     plausible year found is a reasonable guess. Not foolproof (a label
+     could show a founding year, an address number, etc.) — that's why this
+     lands in the form for review rather than being saved directly. */
+  guessVintage(text) {
+    const matches = (text || "").match(/\b(19[5-9]\d|20[0-4]\d)\b/g);
+    return matches && matches.length ? matches[0] : "";
+  }
+
+  /* Producer/cuvée names are usually the most prominent text on a label —
+     approximated here as the tallest recognized line of letters (not a
+     pure number, not too short to be noise). */
+  guessName(lines, fallbackText) {
+    const candidates = (lines || [])
+      .map(function (l) {
+        const text = (l.text || "").replace(/\s+/g, " ").trim();
+        const height = l.bbox ? (l.bbox.y1 - l.bbox.y0) : 0;
+        return { text: text, height: height };
+      })
+      .filter(function (l) { return l.text.length >= 3 && /[A-Za-z]{3,}/.test(l.text) && !/^\d+$/.test(l.text); });
+    if (candidates.length) {
+      candidates.sort(function (a, b) { return b.height - a.height; });
+      return candidates[0].text;
+    }
+    const fallbackLine = (fallbackText || "").split("\n")
+      .map(function (s) { return s.trim(); })
+      .filter(function (s) { return s.length >= 3 && /[A-Za-z]{3,}/.test(s); })[0];
+    return fallbackLine || "";
+  }
+
+  /* Opens the Add-bottle form right away with a "reading" placeholder, then
+     fills in whatever OCR could make out once it resolves — best-effort
+     auto-fill of vintage + a name guess only; everything else (region,
+     grape, price, etc.) still needs a human, same as any other add. */
+  handleScanFile(file) {
+    if (!file) return;
+    const self = this;
+    this.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "Reading the label…" });
+    this.ensureTesseract()
+      .then(function () { return window.Tesseract.recognize(file, "eng"); })
+      .then(function (result) {
+        if (self.state.modal !== "add" || self.state.editingId != null) return;
+        const data = (result && result.data) || {};
+        const vintage = self.guessVintage(data.text);
+        const name = self.guessName(data.lines, data.text);
+        self.setState({
+          draft: Object.assign({}, self.state.draft, {
+            name: name || self.state.draft.name,
+            vintage: vintage || self.state.draft.vintage
+          }),
+          addHint: (name || vintage)
+            ? "Scanned from the label — double-check the name and vintage, then fill in the rest."
+            : "Couldn't make out much on that label — fill in the details below."
+        });
+      })
+      .catch(function () {
+        if (self.state.modal !== "add" || self.state.editingId != null) return;
+        self.setState({ addHint: "Couldn't read that label — fill in the details manually." });
+      });
   }
 
   exportBackup() {
@@ -1495,6 +1576,11 @@ class Component extends DCLogic {
       leaderboardEmpty: leaderboardItems.length === 0,
       isLeaderboardModal: st.modal === "leaderboard",
       onAdd: function () { self.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "" }); },
+      onScanFile: function (e) {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = "";
+        if (file) self.handleScanFile(file);
+      },
       onCloseModal: function () { self.setState({ modal: null, target: null, editingId: null, editingRatingFor: null, sommelierQuery: "", selectedTasters: [], draftRatings: {}, newTasterName: "", companions: [], newCompanionName: "" }); },
       stop: function (e) { e.stopPropagation(); },
       modalOpen: !!st.modal,
