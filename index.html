@@ -229,6 +229,16 @@
         <div style="font-size: 14px; color: var(--color-neutral-700); margin: var(--space-2) 0 var(--space-4);">{{ modalSub }}</div>
 
         <sc-if value="{{ isSuggest }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 6px;">Who&rsquo;s drinking? <span style="text-transform: none; letter-spacing: normal; font-weight: 400; color: var(--color-neutral-500);">(optional — leans picks toward their taste)</span></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-2);">
+            <sc-for list="{{ companionChips }}" as="p" hint-placeholder-count="2">
+              <button type="button" onClick="{{ p.onClick }}" style="border: 1px solid {{ p.border }}; background: {{ p.bg }}; color: {{ p.fg }}; border-radius: 999px; padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 130ms ease;">{{ p.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display: flex; gap: 6px; margin-bottom: var(--space-4);">
+            <input value="{{ newCompanionName }}" onInput="{{ onNewCompanionName }}" placeholder="Add someone new" style="flex: 1; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 9px var(--space-4); font-size: 13.5px; color: var(--color-text); font-family: inherit;">
+            <button type="button" onClick="{{ onAddCompanion }}" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 15px; font-size: 12.5px; font-weight: 600; color: var(--color-neutral-700); flex: none;">Add</button>
+          </div>
           <input value="{{ sommelierQuery }}" onInput="{{ onSommelierQuery }}" placeholder="Or describe it — &quot;light red under $30&quot;, &quot;something for steak&quot;" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 14px; color: var(--color-text); font-family: inherit; margin-bottom: var(--space-3);">
           <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-6);">
             <sc-for list="{{ occasions }}" as="occ" hint-placeholder-count="6">
@@ -288,15 +298,43 @@
             <div style="font-size: 15px; font-weight: 700; line-height: 1.3;">{{ finishName }}</div>
             <div style="font-size: 12.5px; color: var(--color-neutral-700); margin-top: 3px;">{{ finishMeta }}</div>
           </div>
-          <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: var(--space-1);">Rating</div>
+          <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: var(--space-1);">Your rating</div>
           <div style="display: flex; gap: 4px;">
             <sc-for list="{{ starButtons }}" as="s" hint-placeholder-count="5">
               <button type="button" onClick="{{ s.onClick }}" style="border: 0; background: transparent; cursor: pointer; font-size: 32px; line-height: 1; padding: 4px 3px; color: {{ s.color }}; transition: color 120ms ease;">&#9733;</button>
             </sc-for>
           </div>
           <div style="font-size: 13px; color: var(--color-neutral-700); margin: var(--space-1) 0 var(--space-4); min-height: 20px;">{{ ratingWord }}</div>
+
+          <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 6px;">Had it with someone? <span style="text-transform: none; letter-spacing: normal; font-weight: 400; color: var(--color-neutral-500);">(optional — log their rating too)</span></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-2);">
+            <sc-for list="{{ tasterChips }}" as="p" hint-placeholder-count="2">
+              <button type="button" onClick="{{ p.onClick }}" style="border: 1px solid {{ p.border }}; background: {{ p.bg }}; color: {{ p.fg }}; border-radius: 999px; padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 130ms ease;">{{ p.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display: flex; gap: 6px; margin-bottom: var(--space-4);">
+            <input value="{{ newTasterName }}" onInput="{{ onNewTasterName }}" placeholder="Add someone new" style="flex: 1; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 9px var(--space-4); font-size: 13.5px; color: var(--color-text); font-family: inherit;">
+            <button type="button" onClick="{{ onAddTaster }}" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 15px; font-size: 12.5px; font-weight: 600; color: var(--color-neutral-700); flex: none;">Add</button>
+          </div>
+
+          <sc-if value="{{ hasSelectedTasters }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-bottom: var(--space-3);">
+              <sc-for list="{{ tasterRatingRows }}" as="tr" hint-placeholder-count="2">
+                <div style="margin-bottom: var(--space-3);">
+                  <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">{{ tr.name }}</div>
+                  <div style="display: flex; gap: 4px;">
+                    <sc-for list="{{ tr.starButtons }}" as="s" hint-placeholder-count="5">
+                      <button type="button" onClick="{{ s.onClick }}" style="border: 0; background: transparent; cursor: pointer; font-size: 26px; line-height: 1; padding: 3px 2px; color: {{ s.color }}; transition: color 120ms ease;">&#9733;</button>
+                    </sc-for>
+                  </div>
+                  <div style="font-size: 12.5px; color: var(--color-neutral-700); margin-top: 2px;">{{ tr.ratingWord }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
           <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: var(--space-1);">Tasting note</div>
-          <input value="{{ draftNote }}" onInput="{{ onDraftNote }}" placeholder="Who, where, how it drank" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 14px; color: var(--color-text); font-family: inherit; margin-bottom: var(--space-6);">
+          <input value="{{ draftNote }}" onInput="{{ onDraftNote }}" placeholder="Where, how it drank" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 14px; color: var(--color-text); font-family: inherit; margin-bottom: var(--space-6);">
           <div style="display: flex; gap: var(--space-2);">
             <button type="button" onClick="{{ onConfirmFinish }}" style="flex: 1; border: 0; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); background: var(--color-accent); color: var(--color-accent-100); font-family: var(--font-heading); font-size: 15px;">{{ confirmFinishLabel }}</button>
             <button type="button" onClick="{{ onCloseModal }}" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); color: var(--color-text); font-size: 14px; font-weight: 600;">Cancel</button>
@@ -605,15 +643,36 @@ const BASE = RAW.map(function (r) {
   return normalise({ id: r[0], qty: r[1], vintage: r[2], name: r[3], color: r[4], country: r[5], region: r[6], grape: r[7], cost: r[8], notes: r[9], drinkStart: r[10], drinkEnd: r[11] });
 });
 
+const DEFAULT_PEOPLE = ["Kevin", "Krista"];
+/* Kevin is the app's primary user: his rating is always the main "Rating"
+   field. Other people are additive — logged alongside his rating when he
+   had the bottle with someone, never in place of it. */
+const PRIMARY_PERSON = "Kevin";
+
+/* Every {person, rating} pair logged for a tasting. A log entry is either
+   the current multi-person shape (ratings: {person: rating}) or an older
+   single-rating entry (rating: n) from before multi-person support — both
+   count toward averages and toward a person's taste profile. */
+function entryRatings(e) {
+  if (e.ratings && typeof e.ratings === "object") {
+    return Object.keys(e.ratings)
+      .filter(function (p) { return e.ratings[p] > 0; })
+      .map(function (p) { return { person: p, rating: e.ratings[p] }; });
+  }
+  if (e.rating > 0) return [{ person: e.person || "", rating: e.rating }];
+  return [];
+}
+
 function loadStore() {
   try {
     const raw = window.localStorage.getItem(KEY);
     const s = raw ? JSON.parse(raw) : {};
     return {
       log: s.log || {}, added: s.added || [], consumed: s.consumed || {},
-      overrides: s.overrides || {}, baseline: s.baseline || {}
+      overrides: s.overrides || {}, baseline: s.baseline || {},
+      people: s.people && s.people.length ? s.people : DEFAULT_PEOPLE.slice()
     };
-  } catch (e) { return { log: {}, added: [], consumed: {}, overrides: {}, baseline: {} }; }
+  } catch (e) { return { log: {}, added: [], consumed: {}, overrides: {}, baseline: {}, people: DEFAULT_PEOPLE.slice() }; }
 }
 
 const EMPTY_DRAFT = { name: "", vintage: "", region: "", regionOther: "", country: "", grape: "", cost: "", notes: "", style: "White", qty: "1", baseline: "0", rack: "", shelf: "", drinkStart: "", drinkEnd: "" };
@@ -627,7 +686,9 @@ class Component extends DCLogic {
       sommelierQuery: "", editingRatingFor: null,
       draftRating: 0, draftNote: "", draft: Object.assign({}, EMPTY_DRAFT),
       addHint: "", log: s.log, added: s.added, consumed: s.consumed, overrides: s.overrides,
-      baseline: s.baseline
+      baseline: s.baseline, people: s.people,
+      selectedTasters: [], draftRatings: {}, newTasterName: "",
+      companions: [], newCompanionName: ""
     };
   })();
 
@@ -665,15 +726,32 @@ class Component extends DCLogic {
       added: patch.added || this.state.added,
       consumed: patch.consumed || this.state.consumed,
       overrides: patch.overrides || this.state.overrides,
-      baseline: patch.baseline || this.state.baseline
+      baseline: patch.baseline || this.state.baseline,
+      people: patch.people || this.state.people
     };
     try { window.localStorage.setItem(KEY, JSON.stringify(next)); } catch (e) {}
+  }
+
+  addTaster() {
+    const name = (this.state.newTasterName || "").trim();
+    if (!name) return;
+    const people = this.state.people.indexOf(name) >= 0 ? this.state.people : this.state.people.concat([name]);
+    const selectedTasters = this.state.selectedTasters.indexOf(name) >= 0 ? this.state.selectedTasters : this.state.selectedTasters.concat([name]);
+    this.persist({ people: people, selectedTasters: selectedTasters, newTasterName: "" });
+  }
+
+  addCompanion() {
+    const name = (this.state.newCompanionName || "").trim();
+    if (!name) return;
+    const people = this.state.people.indexOf(name) >= 0 ? this.state.people : this.state.people.concat([name]);
+    const companions = this.state.companions.indexOf(name) >= 0 ? this.state.companions : this.state.companions.concat([name]);
+    this.persist({ people: people, companions: companions, newCompanionName: "" });
   }
 
   exportBackup() {
     const data = {
       log: this.state.log, added: this.state.added, consumed: this.state.consumed,
-      overrides: this.state.overrides, baseline: this.state.baseline,
+      overrides: this.state.overrides, baseline: this.state.baseline, people: this.state.people,
       exportedAt: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -700,7 +778,8 @@ class Component extends DCLogic {
       if (!window.confirm("This replaces everything currently on this device — quantities, ratings, notes, added bottles — with the backup file. Continue?")) return;
       self.persist({
         log: data.log || {}, added: data.added || [], consumed: data.consumed || {},
-        overrides: data.overrides || {}, baseline: data.baseline || {}
+        overrides: data.overrides || {}, baseline: data.baseline || {},
+        people: (data.people && data.people.length) ? data.people : DEFAULT_PEOPLE.slice()
       });
     };
     reader.readAsText(file);
@@ -715,10 +794,12 @@ class Component extends DCLogic {
   /* Average + count across every tasting logged for w (unrated opens, i.e.
      rating 0, count toward "times opened" elsewhere but not the average). */
   ratingStats(w) {
-    const entries = (this.state.log[w.id] || []).filter(function (e) { return e.rating > 0; });
-    const count = entries.length;
-    const avg = count ? entries.reduce(function (a, e) { return a + e.rating; }, 0) / count : 0;
-    return { avg: avg, count: count };
+    const entries = this.state.log[w.id] || [];
+    let sum = 0, count = 0;
+    entries.forEach(function (e) {
+      entryRatings(e).forEach(function (pr) { sum += pr.rating; count++; });
+    });
+    return { avg: count ? sum / count : 0, count: count };
   }
 
   /* Total bottles ever finished: pre-app history you backfilled, plus
@@ -911,11 +992,11 @@ class Component extends DCLogic {
   }
 
   picksForQuery(query) {
-    const self = this;
+    const self = this, companions = this.state.companions || [];
     const parsed = this.parseSommelierQuery(query);
     return this.all()
       .filter(function (w) { return self.remaining(w) > 0; })
-      .map(function (w) { return { w: w, n: self.scoreForQuery(w, parsed) }; })
+      .map(function (w) { return { w: w, n: self.scoreForQuery(w, parsed) + self.companionScore(w, companions) }; })
       .filter(function (x) { return x.n > 0; })
       .sort(function (a, b) { return b.n - a.n; })
       .slice(0, 3)
@@ -923,13 +1004,55 @@ class Component extends DCLogic {
   }
 
   picksFor(occ) {
-    const self = this;
+    const self = this, companions = this.state.companions || [];
     return this.all()
       .filter(function (w) { return self.remaining(w) > 0; })
-      .map(function (w) { return { w: w, n: self.score(w, occ) }; })
+      .map(function (w) { return { w: w, n: self.score(w, occ) + self.companionScore(w, companions) }; })
       .sort(function (a, b) { return b.n - a.n; })
       .slice(0, 3)
       .map(function (x) { return x.w; });
+  }
+
+  /* How a person's own ratings lean, bucketed by grape/region/color —
+     their history only, never other tasters'. Used to boost picks toward
+     what they tend to love (or away from what they tend to dislike). */
+  personTasteProfile(person) {
+    const self = this;
+    const profile = { grape: {}, region: {}, color: {} };
+    this.all().forEach(function (w) {
+      const entries = self.state.log[w.id] || [];
+      entries.forEach(function (e) {
+        entryRatings(e).forEach(function (pr) {
+          if (pr.person !== person) return;
+          [["grape", w.grape], ["region", w.region], ["color", w.color]].forEach(function (pair) {
+            const key = pair[0], val = pair[1];
+            if (!val) return;
+            const bucket = profile[key];
+            bucket[val] = bucket[val] || { sum: 0, count: 0 };
+            bucket[val].sum += pr.rating;
+            bucket[val].count += 1;
+          });
+        });
+      });
+    });
+    return profile;
+  }
+
+  /* Positive when w matches grapes/regions/colors these companions have
+     rated highly before; negative when it matches what they've rated low.
+     Zero for anyone with no rating history yet. */
+  companionScore(w, companions) {
+    const self = this;
+    if (!companions || !companions.length) return 0;
+    let bonus = 0;
+    companions.forEach(function (person) {
+      const profile = self.personTasteProfile(person);
+      [["grape", w.grape, 1.5], ["region", w.region, 1.5], ["color", w.color, 1]].forEach(function (t) {
+        const bucket = profile[t[0]][t[1]];
+        if (bucket && bucket.count > 0) bonus += ((bucket.sum / bucket.count) - 3) * t[2];
+      });
+    });
+    return bonus;
   }
 
   /* ── actions ───────────────────────────────────────────── */
@@ -981,29 +1104,52 @@ class Component extends DCLogic {
   confirmFinish() {
     const w = this.state.target;
     if (!w) return;
-    const log = Object.assign({}, this.state.log);
+    const st = this.state;
+    const log = Object.assign({}, st.log);
     const entries = (log[w.id] || []).slice();
-    if (this.state.editingRatingFor === w.id && entries.length) {
-      entries[entries.length - 1] = { at: entries[entries.length - 1].at, rating: this.state.draftRating, note: this.state.draftNote.trim() };
+    const ratings = {};
+    if (st.draftRating > 0) ratings[PRIMARY_PERSON] = st.draftRating;
+    st.selectedTasters.forEach(function (p) {
+      const r = st.draftRatings[p] || 0;
+      if (r > 0) ratings[p] = r;
+    });
+    const entryPatch = { note: st.draftNote.trim(), ratings: ratings };
+    const resetPatch = { modal: null, target: null, editingRatingFor: null, draftRating: 0, draftNote: "", selectedTasters: [], draftRatings: {} };
+    if (st.editingRatingFor === w.id && entries.length) {
+      entries[entries.length - 1] = Object.assign({ at: entries[entries.length - 1].at }, entryPatch);
       log[w.id] = entries;
-      this.persist({ log: log, modal: null, target: null, editingRatingFor: null, draftRating: 0, draftNote: "" });
+      this.persist(Object.assign({ log: log }, resetPatch));
       return;
     }
-    entries.push({ at: Date.now(), rating: this.state.draftRating, note: this.state.draftNote.trim() });
+    entries.push(Object.assign({ at: Date.now() }, entryPatch));
     log[w.id] = entries;
-    const consumed = Object.assign({}, this.state.consumed);
+    const consumed = Object.assign({}, st.consumed);
     consumed[w.id] = (consumed[w.id] || 0) + 1;
-    this.persist({ log: log, consumed: consumed, modal: null, target: null, editingRatingFor: null, draftRating: 0, draftNote: "" });
+    this.persist(Object.assign({ log: log, consumed: consumed }, resetPatch));
   }
 
   /* Open the rate/note modal pre-filled with the most recent tasting for w,
-     in "correct it in place" mode rather than "log a new pour" mode. */
+     in "correct it in place" mode rather than "log a new pour" mode. Kevin's
+     rating (if any) goes back into the primary field; everyone else's into
+     the additional-tasters rows. A legacy unattributed rating from before
+     multi-person support is treated as Kevin's when edited. */
   openRatingEdit(w) {
     const entries = this.state.log[w.id] || [];
     const last = entries.length ? entries[entries.length - 1] : null;
+    let draftRating = 0, selectedTasters = [], draftRatings = {};
+    if (last) {
+      if (last.ratings && typeof last.ratings === "object") {
+        draftRating = last.ratings[PRIMARY_PERSON] || 0;
+        selectedTasters = Object.keys(last.ratings).filter(function (p) { return p !== PRIMARY_PERSON; });
+        selectedTasters.forEach(function (p) { draftRatings[p] = last.ratings[p]; });
+      } else if (last.rating > 0) {
+        draftRating = last.rating;
+      }
+    }
     this.setState({
       modal: "finish", target: w, editingRatingFor: w.id,
-      draftRating: last ? last.rating : 0, draftNote: last ? last.note : ""
+      draftRating: draftRating, draftNote: last ? last.note : "",
+      selectedTasters: selectedTasters, draftRatings: draftRatings, newTasterName: ""
     });
   }
 
@@ -1144,7 +1290,7 @@ class Component extends DCLogic {
         actionBg: inCellar ? "var(--color-accent)" : "transparent",
         actionFg: inCellar ? "var(--color-accent-100)" : "var(--color-accent-700)",
         onAction: inCellar
-          ? function () { self.setState({ modal: "finish", target: w, draftRating: 0, draftNote: "" }); }
+          ? function () { self.setState({ modal: "finish", target: w, draftRating: 0, draftNote: "", selectedTasters: [], draftRatings: {}, newTasterName: "" }); }
           : function () { self.unfinish(w); }
       };
     });
@@ -1172,14 +1318,20 @@ class Component extends DCLogic {
       return bits.length ? "Matches: " + bits.join(", ") : "Closest match in the cellar.";
     };
     const picksSource = hasQuery ? this.picksForQuery(st.sommelierQuery) : (st.modal === "suggest" ? this.picksFor(st.occasion) : []);
+    const companions = st.companions || [];
+    const companionSuffix = function (w) {
+      if (!companions.length) return "";
+      const names = companions.filter(function (p) { return self.companionScore(w, [p]) > 1.5; });
+      return names.length ? " · a favorite style for " + names.join(" & ") : "";
+    };
     const picks = picksSource.map(function (w, i) {
       return {
         rank: ["FIRST", "THEN", "OR"][i] || "OR",
         name: w.name,
         meta: [w.vintage === "n/a" ? "NV" : w.vintage, w.region, w.grape].filter(Boolean).join(" · "),
         price: w.cost === 0 ? "gift" : "$" + w.cost,
-        why: hasQuery ? whyForQuery(w) : occ.why,
-        onOpen: function () { self.setState({ modal: "finish", target: w, draftRating: 0, draftNote: "" }); }
+        why: (hasQuery ? whyForQuery(w) : occ.why) + companionSuffix(w),
+        onOpen: function () { self.setState({ modal: "finish", target: w, draftRating: 0, draftNote: "", selectedTasters: [], draftRatings: {}, newTasterName: "" }); }
       };
     });
     const hasNoPicks = hasQuery && picks.length === 0;
@@ -1202,6 +1354,50 @@ class Component extends DCLogic {
       return {
         color: n <= st.draftRating ? "var(--color-accent)" : "var(--color-neutral-300)",
         onClick: function () { self.setState({ draftRating: n }); }
+      };
+    });
+
+    /* who else was tasting, besides Kevin (Finish modal) */
+    const tasterChips = st.people.filter(function (p) { return p !== PRIMARY_PERSON; }).map(function (p) {
+      const active = st.selectedTasters.indexOf(p) >= 0;
+      const c = self.chip(active, true);
+      return {
+        label: p, bg: c.bg, fg: c.fg, border: c.border,
+        onClick: function () {
+          const has = st.selectedTasters.indexOf(p) >= 0;
+          self.setState({ selectedTasters: has ? st.selectedTasters.filter(function (x) { return x !== p; }) : st.selectedTasters.concat([p]) });
+        }
+      };
+    });
+    const hasSelectedTasters = st.selectedTasters.length > 0;
+    const tasterRatingRows = st.selectedTasters.map(function (p) {
+      const val = st.draftRatings[p] || 0;
+      return {
+        name: p,
+        ratingWord: RATING_WORDS[val],
+        starButtons: [1, 2, 3, 4, 5].map(function (n) {
+          return {
+            color: n <= val ? "var(--color-accent)" : "var(--color-neutral-300)",
+            onClick: function () {
+              const dr = Object.assign({}, st.draftRatings);
+              dr[p] = n;
+              self.setState({ draftRatings: dr });
+            }
+          };
+        })
+      };
+    });
+
+    /* who's drinking, besides Kevin (Suggest modal — companion personalization) */
+    const companionChips = st.people.filter(function (p) { return p !== PRIMARY_PERSON; }).map(function (p) {
+      const active = st.companions.indexOf(p) >= 0;
+      const c = self.chip(active, true);
+      return {
+        label: p, bg: c.bg, fg: c.fg, border: c.border,
+        onClick: function () {
+          const has = st.companions.indexOf(p) >= 0;
+          self.setState({ companions: has ? st.companions.filter(function (x) { return x !== p; }) : st.companions.concat([p]) });
+        }
       };
     });
 
@@ -1282,7 +1478,7 @@ class Component extends DCLogic {
       showEmpty: list.length === 0,
       emptyTitle: inCellar ? "Nothing matches" : "Nothing logged yet",
       emptyBody: inCellar ? "Loosen a filter, or add the bottle you just bought." : "Open a bottle and rate it; it lands here.",
-      onSuggest: function () { self.setState({ modal: "suggest", sommelierQuery: "" }); },
+      onSuggest: function () { self.setState({ modal: "suggest", sommelierQuery: "", companions: [], newCompanionName: "" }); },
       onOpenLeaderboard: function () { self.setState({ modal: "leaderboard" }); },
       showDashboard: true,
       dashBottles: totalBottles + "",
@@ -1299,7 +1495,7 @@ class Component extends DCLogic {
       leaderboardEmpty: leaderboardItems.length === 0,
       isLeaderboardModal: st.modal === "leaderboard",
       onAdd: function () { self.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "" }); },
-      onCloseModal: function () { self.setState({ modal: null, target: null, editingId: null, editingRatingFor: null, sommelierQuery: "" }); },
+      onCloseModal: function () { self.setState({ modal: null, target: null, editingId: null, editingRatingFor: null, sommelierQuery: "", selectedTasters: [], draftRatings: {}, newTasterName: "", companions: [], newCompanionName: "" }); },
       stop: function (e) { e.stopPropagation(); },
       modalOpen: !!st.modal,
       isSuggest: st.modal === "suggest",
@@ -1325,6 +1521,16 @@ class Component extends DCLogic {
       finishMeta: target ? [target.vintage === "n/a" ? "NV" : target.vintage, target.region, target.grape].filter(Boolean).join(" · ") : "",
       starButtons: starButtons,
       ratingWord: RATING_WORDS[st.draftRating],
+      tasterChips: tasterChips,
+      hasSelectedTasters: hasSelectedTasters,
+      tasterRatingRows: tasterRatingRows,
+      newTasterName: st.newTasterName,
+      onNewTasterName: function (e) { self.setState({ newTasterName: e.target.value }); },
+      onAddTaster: function () { self.addTaster(); },
+      companionChips: companionChips,
+      newCompanionName: st.newCompanionName,
+      onNewCompanionName: function (e) { self.setState({ newCompanionName: e.target.value }); },
+      onAddCompanion: function () { self.addCompanion(); },
       draftNote: st.draftNote,
       onDraftNote: function (e) { self.setState({ draftNote: e.target.value }); },
       onConfirmFinish: function () { self.confirmFinish(); },
