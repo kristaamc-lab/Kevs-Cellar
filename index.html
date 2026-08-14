@@ -35,6 +35,21 @@
 </style>
 </helmet>
 
+<sc-if value="{{ isLocked }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height: 100vh; background: var(--color-bg); display: flex; align-items: center; justify-content: center; padding: var(--space-4);">
+    <div style="width: 100%; max-width: 380px; background: var(--color-neutral-100); border-radius: var(--radius-lg); padding: var(--space-8) var(--space-6); box-shadow: var(--shadow-lg); text-align: center;">
+      <h1 style="font-family: var(--font-heading); font-weight: 400; font-size: 28px; line-height: 1.1; margin: 0 0 var(--space-2);">Kevin&rsquo;s<br>Wine Cellar</h1>
+      <div style="font-size: 14px; color: var(--color-neutral-700); margin-bottom: var(--space-6);">Enter the shared passcode to sync this device with the cellar.</div>
+      <input value="{{ passcodeInput }}" onInput="{{ onPasscodeInput }}" type="password" placeholder="Passcode" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 15px; color: var(--color-text); font-family: inherit; text-align: center; margin-bottom: var(--space-3); box-sizing: border-box;">
+      <sc-if value="{{ hasLockError }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size: 12.5px; color: var(--color-accent-2-700); margin-bottom: var(--space-3);">{{ lockError }}</div>
+      </sc-if>
+      <button type="button" onClick="{{ onSubmitPasscode }}" style="width: 100%; border: 0; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); background: var(--color-accent); color: var(--color-accent-100); font-family: var(--font-heading); font-size: 15px;">Unlock</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isUnlocked }}" hint-placeholder-val="{{ true }}">
 <div style="min-height: 100vh; background: var(--color-bg); padding: 0 0 100px;">
   <div class="cellar-shell" style="max-width: 480px; margin: 0 auto; padding: 0 var(--space-4);">
   <div class="cellar-body">
@@ -53,12 +68,18 @@
         </label>
         <button type="button" onClick="{{ onAdd }}" title="Add a bottle" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 0; cursor: pointer; background: var(--color-accent); color: var(--color-accent-100); font-size: 26px; line-height: 1; box-shadow: var(--shadow-sm); margin-top: 2px;" style-hover="background: var(--color-accent-600);">+</button>
       </div>
-      <div style="display: flex; gap: var(--space-3); margin-top: var(--space-2);">
+      <div style="display: flex; gap: var(--space-3); margin-top: var(--space-2); flex-wrap: wrap; align-items: center;">
         <button type="button" onClick="{{ onExport }}" style="border: 0; background: transparent; color: var(--color-accent-700); font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0;">Export backup</button>
         <label style="color: var(--color-accent-700); font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0;">
           Import backup
           <input type="file" accept="application/json" onChange="{{ onImport }}" style="position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0;">
         </label>
+        <sc-if value="{{ hasCloudSync }}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{ showChangePasscode }}" hint-placeholder-val="{{ false }}">
+            <button type="button" onClick="{{ onChangePasscode }}" style="border: 0; background: transparent; color: var(--color-accent-700); font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0;">Change passcode</button>
+          </sc-if>
+          <span style="font-size: 11.5px; color: var(--color-neutral-600); margin-left: auto;">{{ syncStatus }}</span>
+        </sc-if>
       </div>
     </header>
 
@@ -384,10 +405,46 @@
     </div>
   </sc-if>
 </div>
+</sc-if>
 
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:900}}">
 const KEY = "mcnamara-cellar-v3";
+const CLOUD_KEY = "mcnamara-cellar-cloud-doc";
+
+/* Cross-device sync via Firebase Firestore, set up once by Kevin at
+   https://console.firebase.google.com (free tier). Fill in the real
+   values below and re-upload to turn syncing on — until then FIREBASE_ENABLED
+   stays false and the app runs exactly as it always has, local-only.
+   This config is meant to be public (that's how Firebase client config
+   works); access is instead gated by the shared passcode below, which
+   picks which Firestore document a device reads/writes and is never sent
+   anywhere itself — only its SHA-256 hash is. */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCbg9GwR3kanlNN5qMx00i6RGW-6c6Z-Ow",
+  authDomain: "kevs-cellar.firebaseapp.com",
+  projectId: "kevs-cellar",
+  storageBucket: "kevs-cellar.firebasestorage.app",
+  messagingSenderId: "176177860027",
+  appId: "1:176177860027:web:82607dfe703ab72f8e089e"
+};
+const FIREBASE_ENABLED = !!(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf("YOUR_") !== 0);
+
+/* Flip to true to bring the passcode lock screen back — every device
+   that already auto-connected will keep working, since REQUIRE_PASSCODE
+   only changes what NEW/un-connected devices do on load. */
+const REQUIRE_PASSCODE = false;
+const DEFAULT_CLOUD_DOC = "shared";
+
+function bufferToHex(buffer) {
+  return Array.from(new Uint8Array(buffer)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+}
+
+/* Turns the shared passcode into the Firestore document path — the
+   passcode itself never leaves the device. */
+function hashPasscode(text) {
+  return window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(text.trim())).then(bufferToHex);
+}
 
 /* Cellar inventory — mirrored in wines.json.
    Row shape: [id, qty, vintage, name, color, country, region, grape, cost, notes, drinkStart, drinkEnd]
@@ -692,11 +749,15 @@ class Component extends DCLogic {
       addHint: "", log: s.log, added: s.added, consumed: s.consumed, overrides: s.overrides,
       baseline: s.baseline, people: s.people,
       selectedTasters: [], draftRatings: {}, newTasterName: "",
-      companions: [], newCompanionName: ""
+      companions: [], newCompanionName: "",
+      unlocked: !FIREBASE_ENABLED || !REQUIRE_PASSCODE, passcodeInput: "", lockError: "", syncStatus: ""
     };
   })();
 
   mapEl = null;
+  docRef = null;
+  unsubscribeCloud = null;
+  pushTimer = null;
 
   componentDidMount() {
     const self = this;
@@ -707,9 +768,154 @@ class Component extends DCLogic {
       self.setState({ regions: has ? self.state.regions.filter(function (x) { return x !== r; }) : self.state.regions.concat([r]) });
     };
     window.addEventListener("message", this.onMsg);
+
+    if (FIREBASE_ENABLED) {
+      if (REQUIRE_PASSCODE) {
+        let savedHash = null;
+        try { savedHash = window.localStorage.getItem(CLOUD_KEY); } catch (e) {}
+        if (savedHash) {
+          this.setState({ unlocked: true });
+          this.connectCloud(savedHash);
+        }
+      } else {
+        this.connectCloud(DEFAULT_CLOUD_DOC);
+      }
+    }
   }
 
-  componentWillUnmount() { window.removeEventListener("message", this.onMsg); }
+  componentWillUnmount() {
+    window.removeEventListener("message", this.onMsg);
+    if (this.unsubscribeCloud) this.unsubscribeCloud();
+  }
+
+  /* ── cross-device sync (Firestore) ────────────────────────
+     One document per passcode holds the same delta shape as localStorage
+     (log/added/consumed/overrides/baseline/people) — never the static
+     RAW inventory, which every device already has baked in. */
+
+  ensureFirebase() {
+    if (window.firebase && window.firebase.apps && window.firebase.apps.length) return Promise.resolve();
+    if (this._firebaseLoading) return this._firebaseLoading;
+    const self = this;
+    function loadScript(src) {
+      return new Promise(function (resolve, reject) {
+        const s = document.createElement("script");
+        s.src = src;
+        s.onload = function () { resolve(); };
+        s.onerror = function () { reject(new Error("Failed to load Firebase")); };
+        document.head.appendChild(s);
+      });
+    }
+    this._firebaseLoading = loadScript("https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js")
+      .then(function () { return loadScript("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"); })
+      .then(function () { window.firebase.initializeApp(FIREBASE_CONFIG); });
+    return this._firebaseLoading;
+  }
+
+  submitPasscode() {
+    const code = (this.state.passcodeInput || "").trim();
+    if (!code) { this.setState({ lockError: "Enter the passcode." }); return; }
+    const self = this;
+    this.setState({ lockError: "", syncStatus: "Connecting…" });
+    hashPasscode(code).then(function (hash) {
+      try { window.localStorage.setItem(CLOUD_KEY, hash); } catch (e) {}
+      self.setState({ unlocked: true, passcodeInput: "" });
+      self.connectCloud(hash);
+    }).catch(function () {
+      self.setState({ lockError: "Couldn't unlock on this device — try again.", syncStatus: "" });
+    });
+  }
+
+  changePasscode() {
+    if (this.unsubscribeCloud) { this.unsubscribeCloud(); this.unsubscribeCloud = null; }
+    this.docRef = null;
+    try { window.localStorage.removeItem(CLOUD_KEY); } catch (e) {}
+    this.setState({ unlocked: false, passcodeInput: "", lockError: "", syncStatus: "" });
+  }
+
+  /* First connection on a device with a given passcode: if the cloud copy
+     already exists and this device also has real local history, ask which
+     one wins rather than silently discarding either. Every connection
+     after that is just the realtime listener. */
+  connectCloud(hash) {
+    const self = this;
+    this.ensureFirebase().then(function () {
+      const db = window.firebase.firestore();
+      self.docRef = db.collection("cellars").doc(hash);
+      return self.docRef.get();
+    }).then(function (snap) {
+      const remote = snap && snap.exists ? snap.data() : null;
+      const st = self.state;
+      const hasLocalData = Object.keys(st.log).length > 0 || st.added.length > 0
+        || Object.keys(st.consumed).length > 0 || Object.keys(st.overrides).length > 0
+        || Object.keys(st.baseline).length > 0;
+      if (remote && hasLocalData) {
+        const useCloud = window.confirm(
+          "This device already has cellar data on it, and the synced copy has data too.\n\n" +
+          "OK = use the synced copy on this device (recommended).\n" +
+          "Cancel = keep this device's data and overwrite the synced copy with it."
+        );
+        if (useCloud) self.applyRemote(remote); else self.writeToCloud();
+      } else if (remote) {
+        self.applyRemote(remote);
+      } else {
+        self.writeToCloud();
+      }
+      self.subscribeCloud();
+      self.setState({ syncStatus: "Synced" });
+    }).catch(function () {
+      self.setState({ syncStatus: "Offline — changes are saved on this device and will sync when reconnected." });
+    });
+  }
+
+  subscribeCloud() {
+    const self = this;
+    this.unsubscribeCloud = this.docRef.onSnapshot(function (snap) {
+      if (snap.metadata.hasPendingWrites) return;
+      const data = snap.data();
+      if (data) self.applyRemote(data);
+      self.setState({ syncStatus: "Synced" });
+    }, function () {
+      self.setState({ syncStatus: "Offline — changes are saved on this device and will sync when reconnected." });
+    });
+  }
+
+  /* Applies an incoming cloud snapshot to local state/localStorage without
+     re-pushing it back up (that would loop forever with subscribeCloud). */
+  applyRemote(data) {
+    const next = {
+      log: data.log || {}, added: data.added || [], consumed: data.consumed || {},
+      overrides: data.overrides || {}, baseline: data.baseline || {},
+      people: (data.people && data.people.length) ? data.people : DEFAULT_PEOPLE.slice()
+    };
+    this.setState(next);
+    try { window.localStorage.setItem(KEY, JSON.stringify(next)); } catch (e) {}
+  }
+
+  /* Debounced for regular edits (so a burst of +1 clicks doesn't fire a
+     write per click). The initial seed write in connectCloud() bypasses
+     this and calls writeToCloud() directly — there's nothing to batch on
+     first connect, and it should land before the realtime listener attaches. */
+  pushToCloud() {
+    if (!this.docRef) return;
+    const self = this;
+    clearTimeout(this.pushTimer);
+    this.pushTimer = setTimeout(function () { self.writeToCloud(); }, 600);
+  }
+
+  writeToCloud() {
+    if (!this.docRef) return Promise.resolve();
+    const self = this, st = this.state;
+    return this.docRef.set({
+      log: st.log, added: st.added, consumed: st.consumed,
+      overrides: st.overrides, baseline: st.baseline, people: st.people,
+      updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function () {
+      self.setState({ syncStatus: "Synced" });
+    }).catch(function () {
+      self.setState({ syncStatus: "Offline — changes are saved on this device and will sync when reconnected." });
+    });
+  }
 
   componentDidUpdate() { this.postMap(); }
 
@@ -734,6 +940,7 @@ class Component extends DCLogic {
       people: patch.people || this.state.people
     };
     try { window.localStorage.setItem(KEY, JSON.stringify(next)); } catch (e) {}
+    if (this.docRef) this.pushToCloud();
   }
 
   addTaster() {
@@ -1535,6 +1742,17 @@ class Component extends DCLogic {
     const nextSort = { price: "name", name: "vintage", vintage: "price" };
 
     return {
+      isLocked: !st.unlocked,
+      isUnlocked: st.unlocked,
+      passcodeInput: st.passcodeInput,
+      onPasscodeInput: function (e) { self.setState({ passcodeInput: e.target.value, lockError: "" }); },
+      onSubmitPasscode: function () { self.submitPasscode(); },
+      hasLockError: !!st.lockError,
+      lockError: st.lockError,
+      hasCloudSync: FIREBASE_ENABLED && st.unlocked,
+      showChangePasscode: FIREBASE_ENABLED && REQUIRE_PASSCODE && st.unlocked,
+      onChangePasscode: function () { self.changePasscode(); },
+      syncStatus: st.syncStatus,
       mapRef: function (el) { self.mapEl = el; },
       onMapLoad: function () { self.postMap(); },
       mapHint: st.regions.length ? "Tap a bubble to clear" : "Tap a bubble to filter",
