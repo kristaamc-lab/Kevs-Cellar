@@ -750,7 +750,8 @@ class Component extends DCLogic {
       baseline: s.baseline, people: s.people,
       selectedTasters: [], draftRatings: {}, newTasterName: "",
       companions: [], newCompanionName: "",
-      unlocked: !FIREBASE_ENABLED || !REQUIRE_PASSCODE, passcodeInput: "", lockError: "", syncStatus: ""
+      unlocked: !FIREBASE_ENABLED || !REQUIRE_PASSCODE, passcodeInput: "", lockError: "", syncStatus: "",
+      catalog: null
     };
   })();
 
@@ -758,6 +759,8 @@ class Component extends DCLogic {
   docRef = null;
   unsubscribeCloud = null;
   pushTimer = null;
+  catalogRef = null;
+  unsubscribeCatalog = null;
 
   componentDidMount() {
     const self = this;
@@ -786,6 +789,7 @@ class Component extends DCLogic {
   componentWillUnmount() {
     window.removeEventListener("message", this.onMsg);
     if (this.unsubscribeCloud) this.unsubscribeCloud();
+    if (this.unsubscribeCatalog) this.unsubscribeCatalog();
   }
 
   /* ── cross-device sync (Firestore) ────────────────────────
@@ -842,8 +846,10 @@ class Component extends DCLogic {
     this.ensureFirebase().then(function () {
       const db = window.firebase.firestore();
       self.docRef = db.collection("cellars").doc(hash);
-      return self.docRef.get();
-    }).then(function (snap) {
+      self.catalogRef = db.collection("catalogs").doc(hash);
+      return Promise.all([self.docRef.get(), self.catalogRef.get()]);
+    }).then(function (results) {
+      const snap = results[0], catalogSnap = results[1];
       const remote = snap && snap.exists ? snap.data() : null;
       const st = self.state;
       const hasLocalData = Object.keys(st.log).length > 0 || st.added.length > 0
@@ -862,6 +868,15 @@ class Component extends DCLogic {
         self.writeToCloud();
       }
       self.subscribeCloud();
+
+      const catalogData = catalogSnap && catalogSnap.exists ? catalogSnap.data() : null;
+      if (catalogData && catalogData.wines && catalogData.wines.length) {
+        self.applyRemoteCatalog(catalogData.wines);
+      } else {
+        self.writeCatalogToCloud();
+      }
+      self.subscribeCatalog();
+
       self.setState({ syncStatus: "Synced" });
     }).catch(function () {
       self.setState({ syncStatus: "Offline — changes are saved on this device and will sync when reconnected." });
@@ -878,6 +893,34 @@ class Component extends DCLogic {
     }, function () {
       self.setState({ syncStatus: "Offline — changes are saved on this device and will sync when reconnected." });
     });
+  }
+
+  /* The 179-wine catalog itself, kept in its own Firestore doc so it can
+     survive an accidental stale code deploy — seeded once from the
+     embedded RAW list, then Firestore becomes the source of truth. If
+     Firestore's unreachable (offline, not yet configured), `all()` falls
+     straight back to the embedded copy, so nothing gets less reliable. */
+  applyRemoteCatalog(wines) {
+    this.setState({ catalog: wines });
+  }
+
+  writeCatalogToCloud() {
+    if (!this.catalogRef) return Promise.resolve();
+    const wines = RAW.map(function (r) {
+      return { id: r[0], qty: r[1], vintage: r[2], name: r[3], color: r[4], country: r[5], region: r[6], grape: r[7], cost: r[8], notes: r[9], drinkStart: r[10], drinkEnd: r[11] };
+    });
+    const self = this;
+    return this.catalogRef.set({ wines: wines, updatedAt: window.firebase.firestore.FieldValue.serverTimestamp() })
+      .then(function () { self.setState({ catalog: wines }); });
+  }
+
+  subscribeCatalog() {
+    const self = this;
+    this.unsubscribeCatalog = this.catalogRef.onSnapshot(function (snap) {
+      if (snap.metadata.hasPendingWrites) return;
+      const data = snap.data();
+      if (data && data.wines && data.wines.length) self.applyRemoteCatalog(data.wines);
+    }, function () {});
   }
 
   /* Applies an incoming cloud snapshot to local state/localStorage without
@@ -1109,7 +1152,9 @@ class Component extends DCLogic {
       const o = overrides[w.id];
       return o ? normalise(Object.assign({}, w, o)) : w;
     }
-    const baseList = BASE.map(applyOverride);
+    const catalog = this.state.catalog;
+    const baseSource = (catalog && catalog.length) ? catalog.map(normalise) : BASE;
+    const baseList = baseSource.map(applyOverride);
     const addedList = this.state.added.map(function (a) { return applyOverride(normalise(a)); });
     return baseList.concat(addedList);
   }
