@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cellar map</title>
+<script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
+<style>
+  html, body { margin: 0; height: 100%; background: #ebddc5; font-family: "Figtree", system-ui, sans-serif; overflow: hidden; }
+  #map { width: 100%; height: 100%; }
+  text { pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+/* Region centroids for the appellations in the cellar sheet. */
+var PLACES = {
+  "Burgundy":    { lon: 4.85,  lat: 47.05, dir: "sw" },
+  "Champagne":   { lon: 4.03,  lat: 49.05, dir: "e" },
+  "Loire":       { lon: 0.70,  lat: 47.40, dir: "w" },
+  "Provence":    { lon: 5.90,  lat: 43.60, dir: "se" },
+  "Limoux":      { lon: 2.22,  lat: 43.05, dir: "sw" },
+  "Liguria":     { lon: 8.70,  lat: 44.15, dir: "e" },
+  "Piedmont":    { lon: 7.75,  lat: 45.10, dir: "ne" },
+  "Sardinia":    { lon: 9.05,  lat: 39.95, dir: "e" },
+  "Offida":      { lon: 13.70, lat: 42.90, dir: "e" },
+  "Bordeaux":    { lon: -0.60, lat: 44.84, dir: "sw" },
+  "Pauillac":    { lon: -0.75, lat: 45.20, dir: "n" },
+  "St. Emilion": { lon: -0.16, lat: 44.89, dir: "e" },
+  "Rhone":       { lon: 4.87,  lat: 45.07, dir: "e" },
+  "CDP":         { lon: 4.83,  lat: 44.06, dir: "se" },
+  "Beaujolais":  { lon: 4.70,  lat: 46.15, dir: "s" },
+  "Catalanes":   { lon: 2.75,  lat: 42.60, dir: "s" },
+  "Rioja":       { lon: -2.48, lat: 42.47, dir: "n" },
+  "Priorat":     { lon: 0.82,  lat: 41.18, dir: "e" },
+  "Ribera":      { lon: -3.70, lat: 41.66, dir: "w" },
+  "Bierzo":      { lon: -6.60, lat: 42.60, dir: "w" },
+  "Valdefinjas": { lon: -5.50, lat: 41.40, dir: "s" },
+  "Veneto":      { lon: 10.99, lat: 45.60, dir: "n" },
+  "Etna":        { lon: 15.00, lat: 37.75, dir: "s" },
+  "Umbria":      { lon: 12.60, lat: 42.90, dir: "e" },
+  "Campania":    { lon: 14.90, lat: 41.00, dir: "e" },
+  "Tuscany":     { lon: 11.05, lat: 43.45, dir: "sw" }
+};
+
+function radiusOf(d) { return 6 + Math.sqrt(d.count) * 4.4; }
+
+/* Labels sit clear of their own bubble: offset from the radius, not a fixed px. */
+function labelPos(d) {
+  var r = radiusOf(d), dir = PLACES[d.region].dir, pad = 6;
+  if (dir === "e") return { x: r + pad, y: 4, anchor: "start" };
+  if (dir === "w") return { x: -(r + pad), y: 4, anchor: "end" };
+  if (dir === "n") return { x: 0, y: -(r + pad + 4), anchor: "middle" };
+  if (dir === "s") return { x: 0, y: r + pad + 11, anchor: "middle" };
+  if (dir === "sw") return { x: -(r * 0.7 + pad), y: r * 0.7 + pad + 8, anchor: "end" };
+  if (dir === "ne") return { x: r * 0.7 + pad, y: -(r * 0.7 + pad + 2), anchor: "start" };
+  return { x: r * 0.7 + pad, y: r * 0.7 + pad + 8, anchor: "start" };
+}
+
+var BOX = { type: "MultiPoint", coordinates: [[-8.0, 36.0], [17.0, 51.8]] };
+var HIGHLIGHT = { "France": 1, "Italy": 1, "250": 1, "380": 1 };
+
+/* ?interactive=1 marks the expanded (modal) map — pan/zoom only apply
+   there. The small inline preview keeps a fixed fit: it treats any
+   non-bubble tap as "expand", and drag-to-pan would fight that gesture. */
+var INTERACTIVE = /(?:^|[?&])interactive=1(?:&|$)/.test(location.search);
+
+var state = { regions: [], countries: null };
+var svg, gZoomable, gLand, gDots, projection, path, zoom, width = 0, height = 0;
+
+function setup() {
+  var el = document.getElementById("map");
+  svg = d3.select(el).append("svg");
+  gZoomable = svg.append("g");
+  gLand = gZoomable.append("g");
+  gDots = gZoomable.append("g");
+  projection = d3.geoMercator();
+  path = d3.geoPath(projection);
+  measure();
+  if (INTERACTIVE) {
+    zoom = d3.zoom().scaleExtent([1, 6]).on("zoom", function (event) {
+      gZoomable.attr("transform", event.transform);
+    });
+    svg.call(zoom);
+  }
+  svg.on("click", function () { parent.postMessage({ type: "expand" }, "*"); });
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () {
+      if (el.clientWidth === width && el.clientHeight === height) return;
+      measure(); drawLand(); drawDots();
+    }).observe(el);
+  } else {
+    window.addEventListener("resize", function () { measure(); drawLand(); drawDots(); });
+  }
+}
+
+function measure() {
+  var el = document.getElementById("map");
+  width = el.clientWidth || 440;
+  height = el.clientHeight || 300;
+  svg.attr("width", width).attr("height", height);
+  projection.fitExtent([[8, 10], [width - 8, height - 18]], BOX);
+}
+
+function drawLand() {
+  if (!state.countries) return;
+  gLand.selectAll("path").data(state.countries.features).join("path")
+    .attr("d", path)
+    .attr("fill", function (d) {
+      var n = (d.properties && (d.properties.name || d.properties.NAME)) || "";
+      return (HIGHLIGHT[n] || HIGHLIGHT[String(d.id)]) ? "#e1eecc" : "#dcd3c4";
+    })
+    .attr("stroke", "#ebddc5")
+    .attr("stroke-width", 1.25);
+}
+
+function drawDots() {
+  var pts = state.regions.filter(function (r) { return !!PLACES[r.region]; });
+
+  var g = gDots.selectAll("g.pin").data(pts, function (d) { return d.region; }).join(
+    function (enter) { return enter.append("g").attr("class", "pin"); }
+  );
+  g.selectAll("*").remove();
+  g.attr("transform", function (d) {
+    var p = PLACES[d.region];
+    var xy = projection([p.lon, p.lat]);
+    return "translate(" + xy[0] + "," + xy[1] + ")";
+  }).style("cursor", "pointer")
+    .on("click", function (e, d) { e.stopPropagation(); parent.postMessage({ type: "region", region: d.region }, "*"); });
+
+  g.append("circle")
+    .attr("r", radiusOf)
+    .attr("fill", function (d) { return d.active ? "#8c491a" : "#c67139"; })
+    .attr("fill-opacity", function (d) { return d.active ? 1 : 0.82; })
+    .attr("stroke", "#f9f4ed")
+    .attr("stroke-width", 2);
+
+  g.append("text")
+    .attr("y", 4)
+    .attr("text-anchor", "middle")
+    .attr("font-size", 11)
+    .attr("font-weight", 700)
+    .attr("fill", "#fff2eb")
+    .text(function (d) { return d.count; });
+
+  g.append("text")
+    .attr("x", function (d) { return labelPos(d).x; })
+    .attr("y", function (d) { return labelPos(d).y; })
+    .attr("text-anchor", function (d) { return labelPos(d).anchor; })
+    .attr("font-size", 11.5)
+    .attr("font-weight", 600)
+    .attr("fill", function (d) { return d.active ? "#8c491a" : "#474238"; })
+    .text(function (d) { return d.region; });
+}
+
+window.addEventListener("message", function (e) {
+  if (!e.data) return;
+  if (e.data.type === "cellar") {
+    state.regions = e.data.regions || [];
+    drawDots();
+  } else if (e.data.type === "reset-view" && zoom) {
+    svg.transition().call(zoom.transform, d3.zoomIdentity);
+  }
+});
+
+setup();
+d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json").then(function (topo) {
+  state.countries = topojson.feature(topo, topo.objects.countries);
+  drawLand();
+  drawDots();
+  parent.postMessage({ type: "map-ready" }, "*");
+});
+</script>
+</body>
+</html>

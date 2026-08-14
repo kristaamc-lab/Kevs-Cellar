@@ -4,7 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kevin's Wine Cellar</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#c67139">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kev's Cellar">
 <script src="./support.js"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("./sw.js").catch(function () {});
+    });
+  }
+</script>
 </head>
 <body>
 <x-dc>
@@ -74,6 +87,7 @@
           Import backup
           <input type="file" accept="application/json" onChange="{{ onImport }}" style="position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0;">
         </label>
+        <button type="button" onClick="{{ onBulkAdd }}" style="border: 0; background: transparent; color: var(--color-accent-700); font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0;">Bulk add</button>
         <sc-if value="{{ hasCloudSync }}" hint-placeholder-val="{{ false }}">
           <sc-if value="{{ showChangePasscode }}" hint-placeholder-val="{{ false }}">
             <button type="button" onClick="{{ onChangePasscode }}" style="border: 0; background: transparent; color: var(--color-accent-700); font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0;">Change passcode</button>
@@ -84,11 +98,14 @@
     </header>
 
     <section style="background: var(--color-surface); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: var(--space-4); box-shadow: var(--shadow-sm);">
-      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: var(--space-4) var(--space-4) var(--space-1);">
-        <h2 style="font-family: var(--font-heading); font-weight: 400; font-size: 19px; margin: 0;">Where it&rsquo;s from</h2>
+      <div onClick="{{ onExpandMap }}" style="display: flex; align-items: baseline; justify-content: space-between; padding: var(--space-4) var(--space-4) var(--space-1); cursor: pointer;">
+        <h2 style="font-family: var(--font-heading); font-weight: 400; font-size: 19px; margin: 0;">Where it&rsquo;s from <span style="font-size: 13px; font-weight: 400; color: var(--color-neutral-600);">&#8599;</span></h2>
         <div style="font-size: 11.5px; color: var(--color-neutral-600); font-weight: 600;">{{ mapHint }}</div>
       </div>
       <iframe src="wine-map.html" title="Map of cellar regions" ref="{{ mapRef }}" onLoad="{{ onMapLoad }}" style="width: 100%; height: 300px; border: 0; display: block; background: var(--color-surface);"></iframe>
+      <sc-if value="{{ hasOffMapLine }}" hint-placeholder-val="{{ false }}">
+        <div style="padding: var(--space-2) var(--space-4) var(--space-3); font-size: 11.5px; color: var(--color-neutral-600);">{{ offMapLine }}</div>
+      </sc-if>
     </section>
 
     <div style="display: flex; gap: var(--space-1); background: var(--color-surface); padding: 5px; border-radius: 999px; margin-bottom: var(--space-4);">
@@ -120,6 +137,13 @@
       </sc-for>
     </div>
 
+    <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 6px;">Drinking window</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-3);">
+      <sc-for list="{{ drinkFilterChips }}" as="chip" hint-placeholder-count="2">
+        <button type="button" onClick="{{ chip.onClick }}" style="border: 1px solid {{ chip.border }}; background: {{ chip.bg }}; color: {{ chip.fg }}; border-radius: 999px; padding: 7px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 130ms ease;">{{ chip.label }}</button>
+      </sc-for>
+    </div>
+
     <sc-if value="{{ hasRatingChips }}" hint-placeholder-val="{{ false }}">
       <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 6px;">Rating</div>
       <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-3);">
@@ -139,6 +163,7 @@
   </div>
   <div class="cellar-main">
 
+    <sc-if value="{{ showCellarContent }}" hint-placeholder-val="{{ true }}">
     <sc-if value="{{ showDashboard }}" hint-placeholder-val="{{ false }}">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: var(--space-2); padding: var(--space-4) 2px 0;">
         <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-3);">
@@ -204,6 +229,9 @@
                   <sc-if value="{{ w.hasStatus }}" hint-placeholder-val="{{ false }}">
                     <span style="display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 4px 10px 4px 8px; font-size: 11px; font-weight: 600; color: var(--color-neutral-800); border: 1px solid var(--color-divider);"><span style="width: 7px; height: 7px; border-radius: 999px; background: {{ w.statusColor }}; flex: none;"></span>{{ w.statusLabel }}</span>
                   </sc-if>
+                  <sc-if value="{{ w.isLastBottle }}" hint-placeholder-val="{{ false }}">
+                    <span style="border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 700; color: var(--color-accent-2-800); background: var(--color-accent-2-200);">Last bottle</span>
+                  </sc-if>
                   <sc-if value="{{ w.hasNote }}" hint-placeholder-val="{{ false }}">
                     <span style="border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--color-neutral-700); border: 1px solid var(--color-divider);">{{ w.note }}</span>
                   </sc-if>
@@ -233,6 +261,38 @@
         </div>
       </section>
     </sc-for>
+    </sc-if>
+
+    <sc-if value="{{ isWishlistTab }}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: var(--space-4) 2px var(--space-3); border-top: 1px solid var(--color-divider);">
+        <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700;">{{ wishlistCountLabel }}</div>
+      </div>
+
+      <sc-if value="{{ wishlistEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="background: var(--color-surface); border-radius: var(--radius-lg); padding: var(--space-8) var(--space-6); text-align: center;">
+          <div style="font-family: var(--font-heading); font-size: 20px; margin-bottom: var(--space-1);">Nothing on the wishlist yet</div>
+          <div style="font-size: 14px; color: var(--color-neutral-700);">Tap + to note a bottle you don&rsquo;t own yet.</div>
+        </div>
+      </sc-if>
+
+      <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+        <sc-for list="{{ wishlistItems }}" as="w" hint-placeholder-count="3">
+          <article style="background: var(--color-surface); border-radius: var(--radius-lg); padding: var(--space-4); box-shadow: var(--shadow-sm);">
+            <div style="font-size: 15.5px; font-weight: 700; line-height: 1.28;">{{ w.name }}</div>
+            <sc-if value="{{ w.hasMeta }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size: 13px; color: var(--color-neutral-700); margin-top: 3px;">{{ w.meta }}</div>
+            </sc-if>
+            <sc-if value="{{ w.hasNotes }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size: 12.5px; color: var(--color-neutral-700); margin-top: var(--space-2);">{{ w.notes }}</div>
+            </sc-if>
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: var(--space-3);">
+              <button type="button" onClick="{{ w.onRemove }}" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: 9px 13px; font-size: 12.5px; font-weight: 600; color: var(--color-neutral-700);">Remove</button>
+              <button type="button" onClick="{{ w.onAddToCellar }}" style="border: 0; cursor: pointer; border-radius: 999px; padding: 9px 15px; font-size: 12.5px; font-family: var(--font-heading); background: var(--color-accent); color: var(--color-accent-100);">Got it — add to cellar</button>
+            </div>
+          </article>
+        </sc-for>
+      </div>
+    </sc-if>
 
   </div>
   </div>
@@ -318,6 +378,16 @@
           </div>
         </sc-if>
 
+        <sc-if value="{{ isMapModal }}" hint-placeholder-val="{{ false }}">
+          <div style="position: relative;">
+            <iframe src="wine-map.html?interactive=1" title="Cellar region map, expanded" ref="{{ bigMapRef }}" onLoad="{{ onBigMapLoad }}" style="width: 100%; height: 60vh; border: 0; display: block; background: var(--color-surface); border-radius: var(--radius-md);"></iframe>
+            <button type="button" onClick="{{ onResetMapView }}" style="position: absolute; top: var(--space-2); right: var(--space-2); border: 1px solid var(--color-divider); background: var(--color-surface); cursor: pointer; border-radius: 999px; padding: 6px 12px; font-size: 11.5px; font-weight: 600; color: var(--color-neutral-700);">Reset view</button>
+          </div>
+          <sc-if value="{{ hasOffMapLine }}" hint-placeholder-val="{{ false }}">
+            <div style="padding: var(--space-2) 2px 0; font-size: 11.5px; color: var(--color-neutral-600);">{{ offMapLine }}</div>
+          </sc-if>
+        </sc-if>
+
         <sc-if value="{{ isFinish }}" hint-placeholder-val="{{ false }}">
           <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-6);">
             <div style="font-size: 15px; font-weight: 700; line-height: 1.3;">{{ finishName }}</div>
@@ -401,6 +471,45 @@
             </div>
           </div>
         </sc-if>
+
+        <sc-if value="{{ isBulkModal }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size: 12.5px; color: var(--color-neutral-700); margin-bottom: var(--space-2);">
+            One bottle per line. Paste from a spreadsheet (tab-separated) or type comma-separated, in this column order:<br>
+            <span style="font-family: monospace; font-size: 11px; display: inline-block; margin-top: 4px;">name, vintage, country, region, grape, cost, qty, already-finished, rack, shelf, drink-from, drink-by, notes, style</span>
+          </div>
+          <textarea value="{{ bulkText }}" onInput="{{ onBulkText }}" placeholder="Domaine Leflaive Puligny-Montrachet, 2022, France, Burgundy, Chardonnay, 120, 2, 0, A, 3, 2024, 2032, from Krista's trip, White" style="width: 100%; min-height: 160px; border: 1px solid var(--color-divider); background: #fff; border-radius: var(--radius-md); padding: var(--space-3); font-size: 13px; font-family: monospace; color: var(--color-text); box-sizing: border-box; margin-bottom: var(--space-2);"></textarea>
+          <div style="font-size: 12.5px; color: var(--color-neutral-600); min-height: 18px; margin-bottom: var(--space-3);">{{ bulkStatusLine }}</div>
+          <div style="display: flex; gap: var(--space-2);">
+            <button type="button" onClick="{{ onSaveBulk }}" style="flex: 1; border: 0; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); background: {{ bulkSaveBg }}; color: var(--color-accent-100); font-family: var(--font-heading); font-size: 15px;">{{ bulkSaveLabel }}</button>
+            <button type="button" onClick="{{ onCloseModal }}" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); color: var(--color-text); font-size: 14px; font-weight: 600;">Cancel</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isWishlistAddModal }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+            <label style="display: block;">
+              <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 5px;">Name</div>
+              <input value="{{ wishName }}" onInput="{{ onWishName }}" placeholder="Domaine Leflaive Puligny-Montrachet" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 15px; color: var(--color-text); font-family: inherit; box-sizing: border-box;">
+            </label>
+            <label style="display: block;">
+              <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 5px;">Region</div>
+              <input value="{{ wishRegion }}" onInput="{{ onWishRegion }}" placeholder="Burgundy" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 15px; color: var(--color-text); font-family: inherit; box-sizing: border-box;">
+            </label>
+            <label style="display: block;">
+              <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 5px;">Grape</div>
+              <input value="{{ wishGrape }}" onInput="{{ onWishGrape }}" placeholder="Chardonnay" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 15px; color: var(--color-text); font-family: inherit; box-sizing: border-box;">
+            </label>
+            <label style="display: block;">
+              <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 5px;">Note</div>
+              <input value="{{ wishNotes }}" onInput="{{ onWishNotes }}" placeholder="Recommended by Jason" style="width: 100%; border: 1px solid var(--color-divider); background: #fff; border-radius: 999px; padding: 12px var(--space-4); font-size: 15px; color: var(--color-text); font-family: inherit; box-sizing: border-box;">
+            </label>
+            <div style="font-size: 12.5px; color: var(--color-neutral-600); min-height: 18px;">{{ wishHint }}</div>
+            <div style="display: flex; gap: var(--space-2);">
+              <button type="button" onClick="{{ onSaveWish }}" style="flex: 1; border: 0; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); background: var(--color-accent); color: var(--color-accent-100); font-family: var(--font-heading); font-size: 15px;">Add to wishlist</button>
+              <button type="button" onClick="{{ onCloseModal }}" style="border: 1px solid var(--color-divider); background: transparent; cursor: pointer; border-radius: 999px; padding: var(--space-3) var(--space-4); color: var(--color-text); font-size: 14px; font-weight: 600;">Cancel</button>
+            </div>
+          </div>
+        </sc-if>
       </div>
     </div>
   </sc-if>
@@ -444,6 +553,67 @@ function bufferToHex(buffer) {
    passcode itself never leaves the device. */
 function hashPasscode(text) {
   return window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(text.trim())).then(bufferToHex);
+}
+
+/* Label photos: device-local only, never part of the persist()/Firestore
+   blob (that JSON gets rewritten on every edit -- a few embedded photos
+   would slow every interaction and blow past both localStorage's ~5-10MB
+   quota and Firestore's 1MiB-per-document limit almost immediately). Kept
+   in their own IndexedDB store, keyed by wine id, downsized to a JPEG
+   before storage so a multi-MB phone photo lands around 30-80KB. */
+const PHOTO_DB_NAME = "kevs-cellar-photos";
+const PHOTO_STORE = "photos";
+
+function openPhotoDB() {
+  return new Promise(function (resolve, reject) {
+    if (!window.indexedDB) { reject(new Error("IndexedDB not available")); return; }
+    const req = window.indexedDB.open(PHOTO_DB_NAME, 1);
+    req.onupgradeneeded = function () { req.result.createObjectStore(PHOTO_STORE); };
+    req.onsuccess = function () { resolve(req.result); };
+    req.onerror = function () { reject(req.error); };
+  });
+}
+
+function downscaleImage(file, maxDim, quality) {
+  return new Promise(function (resolve, reject) {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = function () {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.round(img.naturalWidth * scale), h = Math.round(img.naturalHeight * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      canvas.toBlob(function (blob) { blob ? resolve(blob) : reject(new Error("toBlob failed")); }, "image/jpeg", quality);
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
+    img.src = url;
+  });
+}
+
+function savePhotoBlob(id, blob) {
+  return openPhotoDB().then(function (db) {
+    return new Promise(function (resolve, reject) {
+      const tx = db.transaction(PHOTO_STORE, "readwrite");
+      tx.objectStore(PHOTO_STORE).put(blob, id);
+      tx.oncomplete = function () { resolve(); };
+      tx.onerror = function () { reject(tx.error); };
+    });
+  });
+}
+
+/* Best-effort cleanup for a scan that never got saved (modal cancelled) --
+   never blocks the UI on failure, this is just tidiness. */
+function deletePhotoBlob(id) {
+  return openPhotoDB().then(function (db) {
+    return new Promise(function (resolve) {
+      const tx = db.transaction(PHOTO_STORE, "readwrite");
+      tx.objectStore(PHOTO_STORE).delete(id);
+      tx.oncomplete = function () { resolve(); };
+      tx.onerror = function () { resolve(); };
+    });
+  }).catch(function () {});
 }
 
 /* Cellar inventory — mirrored in wines.json.
@@ -667,6 +837,17 @@ const REGIONS_BY_COUNTRY = {
 };
 const OTHER_REGION = "Other…";
 
+/* Regions the map (wine-map.html) actually plots — must be kept in sync
+   with the keys of PLACES over there. Anything not in this list is a real
+   region with no dot on the map (mostly New World appellations outside the
+   Europe-fitted projection); those get listed as plain text under the map
+   instead of forcing a global re-fit that would shrink every other dot. */
+const MAPPED_REGIONS = [
+  "Burgundy", "Champagne", "Loire", "Provence", "Limoux", "Liguria", "Piedmont", "Sardinia", "Offida",
+  "Bordeaux", "Pauillac", "St. Emilion", "Rhone", "CDP", "Beaujolais", "Catalanes",
+  "Rioja", "Priorat", "Ribera", "Bierzo", "Valdefinjas", "Veneto", "Etna", "Umbria", "Campania", "Tuscany"
+];
+
 function styleOf(color, sparkling) {
   if (sparkling && color === "rose") return "Sparkling rosé";
   if (sparkling) return "Sparkling";
@@ -689,6 +870,56 @@ function normalise(o) {
     drinkEnd: o.drinkEnd ? Number(o.drinkEnd) : null,
     note: notes.replace(/sparkling\s*\/?\s*/i, "").trim()
   };
+}
+
+/* Turns a draft-shaped object (the Add-bottle form's state.draft, or one
+   row of a bulk-add paste) into a wine record + its "already finished
+   before this app" count. Shared by saveDraft() and the bulk-add path so
+   a single bottle and a pasted batch normalize identically. */
+function draftToRecord(d) {
+  const n = parseInt(d.qty, 10);
+  const b = parseInt(d.baseline, 10);
+  const baselineN = isNaN(b) ? 0 : Math.max(0, b);
+  const region = d.region === OTHER_REGION ? d.regionOther : d.region;
+  const rec = {
+    name: d.name.trim(), vintage: d.vintage.trim() || "n/a",
+    region: region.trim() || "Unfiled", country: d.country.trim(),
+    grape: d.grape.trim(), cost: Number(String(d.cost).replace(/[^0-9.]/g, "")) || 0,
+    notes: d.notes.trim(),
+    color: d.style === "Rosé" ? "rose" : d.style === "Red" ? "red" : "white",
+    sparkling: d.style === "Sparkling",
+    qty: isNaN(n) ? 1 : Math.max(0, n),
+    rack: d.rack.trim(), shelf: d.shelf.trim(),
+    drinkStart: parseInt(d.drinkStart, 10) || null,
+    drinkEnd: parseInt(d.drinkEnd, 10) || null
+  };
+  return { rec: rec, baselineN: baselineN };
+}
+
+/* One bottle per line, columns matching the Add form's fieldDefs order
+   plus a trailing style column: name, vintage, country, region, grape,
+   cost, qty, baseline, rack, shelf, drinkStart, drinkEnd, notes, style.
+   Tab-delimited (spreadsheet paste) if a line has a tab, comma-delimited
+   otherwise. Rows without a name are silently dropped -- the caller
+   reports how many were skipped. */
+function parseBulkRows(text) {
+  const lines = (text || "").split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+  const rows = [];
+  lines.forEach(function (line) {
+    const cols = line.indexOf("\t") >= 0 ? line.split("\t") : line.split(",");
+    const get = function (idx) { return (cols[idx] || "").trim(); };
+    const name = get(0);
+    if (!name) return;
+    const styleRaw = get(13);
+    const style = STYLE_OPTIONS.indexOf(styleRaw) >= 0 ? styleRaw : "White";
+    rows.push({
+      name: name, vintage: get(1), country: get(2), region: get(3), regionOther: "",
+      grape: get(4), cost: get(5), qty: get(6), baseline: get(7),
+      rack: get(8), shelf: get(9), drinkStart: get(10), drinkEnd: get(11),
+      notes: get(12), style: style
+    });
+  });
+  return { rows: rows, totalLines: lines.length };
 }
 
 /* "ready" | "hold" | "past" | null (null = no drinking window set). */
@@ -731,18 +962,20 @@ function loadStore() {
     return {
       log: s.log || {}, added: s.added || [], consumed: s.consumed || {},
       overrides: s.overrides || {}, baseline: s.baseline || {},
-      people: s.people && s.people.length ? s.people : DEFAULT_PEOPLE.slice()
+      people: s.people && s.people.length ? s.people : DEFAULT_PEOPLE.slice(),
+      wishlist: s.wishlist || []
     };
-  } catch (e) { return { log: {}, added: [], consumed: {}, overrides: {}, baseline: {}, people: DEFAULT_PEOPLE.slice() }; }
+  } catch (e) { return { log: {}, added: [], consumed: {}, overrides: {}, baseline: {}, people: DEFAULT_PEOPLE.slice(), wishlist: [] }; }
 }
 
 const EMPTY_DRAFT = { name: "", vintage: "", region: "", regionOther: "", country: "", grape: "", cost: "", notes: "", style: "White", qty: "1", baseline: "0", rack: "", shelf: "", drinkStart: "", drinkEnd: "" };
+const EMPTY_WISH_DRAFT = { name: "", region: "", grape: "", notes: "" };
 
 class Component extends DCLogic {
   state = (function () {
     const s = loadStore();
     return {
-      tab: "cellar", query: "", type: "All", regions: [], price: "All", minRating: 0,
+      tab: "cellar", query: "", type: "All", regions: [], price: "All", drinkFilter: "All", minRating: 0,
       sort: "price", modal: null, target: null, occasion: "aperitivo", editingId: null,
       sommelierQuery: "", editingRatingFor: null,
       draftRating: 0, draftNote: "", draft: Object.assign({}, EMPTY_DRAFT),
@@ -751,11 +984,14 @@ class Component extends DCLogic {
       selectedTasters: [], draftRatings: {}, newTasterName: "",
       companions: [], newCompanionName: "",
       unlocked: !FIREBASE_ENABLED || !REQUIRE_PASSCODE, passcodeInput: "", lockError: "", syncStatus: "",
-      catalog: null
+      catalog: null, bulkText: "", bulkHint: "",
+      wishlist: s.wishlist, wishDraft: Object.assign({}, EMPTY_WISH_DRAFT), wishHint: "",
+      pendingPhotoId: null
     };
   })();
 
   mapEl = null;
+  bigMapEl = null;
   docRef = null;
   unsubscribeCloud = null;
   pushTimer = null;
@@ -765,10 +1001,14 @@ class Component extends DCLogic {
   componentDidMount() {
     const self = this;
     this.onMsg = function (e) {
-      if (!e.data || e.data.type !== "region") return;
-      const r = e.data.region;
-      const has = self.state.regions.indexOf(r) >= 0;
-      self.setState({ regions: has ? self.state.regions.filter(function (x) { return x !== r; }) : self.state.regions.concat([r]) });
+      if (!e.data) return;
+      if (e.data.type === "region") {
+        const r = e.data.region;
+        const has = self.state.regions.indexOf(r) >= 0;
+        self.setState({ regions: has ? self.state.regions.filter(function (x) { return x !== r; }) : self.state.regions.concat([r]) });
+      } else if (e.data.type === "expand") {
+        if (self.state.modal !== "map") self.setState({ modal: "map" });
+      }
     };
     window.addEventListener("message", this.onMsg);
 
@@ -929,7 +1169,8 @@ class Component extends DCLogic {
     const next = {
       log: data.log || {}, added: data.added || [], consumed: data.consumed || {},
       overrides: data.overrides || {}, baseline: data.baseline || {},
-      people: (data.people && data.people.length) ? data.people : DEFAULT_PEOPLE.slice()
+      people: (data.people && data.people.length) ? data.people : DEFAULT_PEOPLE.slice(),
+      wishlist: data.wishlist || []
     };
     this.setState(next);
     try { window.localStorage.setItem(KEY, JSON.stringify(next)); } catch (e) {}
@@ -951,7 +1192,7 @@ class Component extends DCLogic {
     const self = this, st = this.state;
     return this.docRef.set({
       log: st.log, added: st.added, consumed: st.consumed,
-      overrides: st.overrides, baseline: st.baseline, people: st.people,
+      overrides: st.overrides, baseline: st.baseline, people: st.people, wishlist: st.wishlist,
       updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
     }).then(function () {
       self.setState({ syncStatus: "Synced" });
@@ -963,13 +1204,14 @@ class Component extends DCLogic {
   componentDidUpdate() { this.postMap(); }
 
   postMap() {
-    if (!this.mapEl || !this.mapEl.contentWindow) return;
     const counts = {}, st = this.state;
     this.all().forEach(function (w) { counts[w.region] = (counts[w.region] || 0) + 1; });
     const regions = Object.keys(counts).map(function (r) {
       return { region: r, count: counts[r], active: st.regions.indexOf(r) >= 0 };
     });
-    this.mapEl.contentWindow.postMessage({ type: "cellar", regions: regions }, "*");
+    const payload = { type: "cellar", regions: regions };
+    if (this.mapEl && this.mapEl.contentWindow) this.mapEl.contentWindow.postMessage(payload, "*");
+    if (this.bigMapEl && this.bigMapEl.contentWindow) this.bigMapEl.contentWindow.postMessage(payload, "*");
   }
 
   persist(patch) {
@@ -980,7 +1222,8 @@ class Component extends DCLogic {
       consumed: patch.consumed || this.state.consumed,
       overrides: patch.overrides || this.state.overrides,
       baseline: patch.baseline || this.state.baseline,
-      people: patch.people || this.state.people
+      people: patch.people || this.state.people,
+      wishlist: patch.wishlist || this.state.wishlist
     };
     try { window.localStorage.setItem(KEY, JSON.stringify(next)); } catch (e) {}
     if (this.docRef) this.pushToCloud();
@@ -1051,11 +1294,19 @@ class Component extends DCLogic {
   /* Opens the Add-bottle form right away with a "reading" placeholder, then
      fills in whatever OCR could make out once it resolves — best-effort
      auto-fill of vintage + a name guess only; everything else (region,
-     grape, price, etc.) still needs a human, same as any other add. */
+     grape, price, etc.) still needs a human, same as any other add.
+     Also downsizes and stores the photo itself in IndexedDB under the id
+     this bottle will get if saved — saveDraft() reuses pendingPhotoId
+     instead of minting a fresh one, so the photo and the wine record end
+     up sharing the same key without any post-hoc re-keying. */
   handleScanFile(file) {
     if (!file) return;
     const self = this;
-    this.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "Reading the label…" });
+    const photoId = "new-" + Date.now();
+    this.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "Reading the label…", pendingPhotoId: photoId });
+    downscaleImage(file, 700, 0.6)
+      .then(function (blob) { return savePhotoBlob(photoId, blob); })
+      .catch(function () {});
     this.ensureTesseract()
       .then(function () { return window.Tesseract.recognize(file, "eng"); })
       .then(function (result) {
@@ -1083,6 +1334,7 @@ class Component extends DCLogic {
     const data = {
       log: this.state.log, added: this.state.added, consumed: this.state.consumed,
       overrides: this.state.overrides, baseline: this.state.baseline, people: this.state.people,
+      wishlist: this.state.wishlist,
       exportedAt: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -1110,7 +1362,8 @@ class Component extends DCLogic {
       self.persist({
         log: data.log || {}, added: data.added || [], consumed: data.consumed || {},
         overrides: data.overrides || {}, baseline: data.baseline || {},
-        people: (data.people && data.people.length) ? data.people : DEFAULT_PEOPLE.slice()
+        people: (data.people && data.people.length) ? data.people : DEFAULT_PEOPLE.slice(),
+        wishlist: data.wishlist || []
       });
     };
     reader.readAsText(file);
@@ -1171,6 +1424,8 @@ class Component extends DCLogic {
     if (s.price === "Under $40" && w.cost >= 40) return false;
     if (s.price === "$40–100" && (w.cost < 40 || w.cost > 100)) return false;
     if (s.price === "Over $100" && w.cost <= 100) return false;
+    if (s.drinkFilter === "ready" && drinkStatus(w) !== "ready") return false;
+    if (s.drinkFilter === "past" && drinkStatus(w) !== "past") return false;
     if (s.query) {
       const hay = (w.name + " " + w.region + " " + w.grape + " " + w.country + " " + w.notes).toLowerCase();
       if (hay.indexOf(s.query.toLowerCase()) < 0) return false;
@@ -1400,22 +1655,8 @@ class Component extends DCLogic {
   saveDraft() {
     const d = this.state.draft;
     if (!d.name.trim()) { this.setState({ addHint: "A producer or bottle name is required." }); return; }
-    const n = parseInt(d.qty, 10);
-    const b = parseInt(d.baseline, 10);
-    const baselineN = isNaN(b) ? 0 : Math.max(0, b);
-    const region = d.region === OTHER_REGION ? d.regionOther : d.region;
-    const rec = {
-      name: d.name.trim(), vintage: d.vintage.trim() || "n/a",
-      region: region.trim() || "Unfiled", country: d.country.trim(),
-      grape: d.grape.trim(), cost: Number(String(d.cost).replace(/[^0-9.]/g, "")) || 0,
-      notes: d.notes.trim(),
-      color: d.style === "Rosé" ? "rose" : d.style === "Red" ? "red" : "white",
-      sparkling: d.style === "Sparkling",
-      qty: isNaN(n) ? 1 : Math.max(0, n),
-      rack: d.rack.trim(), shelf: d.shelf.trim(),
-      drinkStart: parseInt(d.drinkStart, 10) || null,
-      drinkEnd: parseInt(d.drinkEnd, 10) || null
-    };
+    const built = draftToRecord(d);
+    const rec = built.rec, baselineN = built.baselineN;
     const baseline = Object.assign({}, this.state.baseline);
     if (this.state.editingId != null) {
       const overrides = Object.assign({}, this.state.overrides);
@@ -1423,11 +1664,58 @@ class Component extends DCLogic {
       if (baselineN > 0) baseline[this.state.editingId] = baselineN; else delete baseline[this.state.editingId];
       this.persist({ overrides: overrides, baseline: baseline, modal: null, editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "" });
     } else {
-      const newId = "new-" + Date.now();
+      const newId = this.state.pendingPhotoId || ("new-" + Date.now());
       const rec2 = Object.assign({ id: newId, added: true }, rec);
       if (baselineN > 0) baseline[newId] = baselineN;
-      this.persist({ added: this.state.added.concat([rec2]), baseline: baseline, modal: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "", tab: "cellar" });
+      this.persist({ added: this.state.added.concat([rec2]), baseline: baseline, modal: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "", tab: "cellar", pendingPhotoId: null });
     }
+  }
+
+  /* Parses the whole pasted block and writes every resulting record in
+     one persist() call -- not one per row, since pushToCloud() shouldn't
+     fire repeatedly for what's logically a single batch action. */
+  saveBulk() {
+    const parsed = parseBulkRows(this.state.bulkText);
+    if (!parsed.totalLines) { this.setState({ bulkHint: "Paste at least one row first." }); return; }
+    if (!parsed.rows.length) { this.setState({ bulkHint: "Couldn't find any rows with a name in the first column." }); return; }
+    const baseline = Object.assign({}, this.state.baseline);
+    const newRecs = parsed.rows.map(function (d, i) {
+      const built = draftToRecord(d);
+      const newId = "new-" + Date.now() + "-" + i;
+      if (built.baselineN > 0) baseline[newId] = built.baselineN;
+      return Object.assign({ id: newId, added: true }, built.rec);
+    });
+    const skipped = parsed.totalLines - parsed.rows.length;
+    this.persist({ added: this.state.added.concat(newRecs), baseline: baseline, modal: null, bulkText: "", bulkHint: "", tab: "cellar" });
+    if (skipped > 0) window.alert(newRecs.length + " bottle(s) added. " + skipped + " row(s) skipped (missing a name in the first column).");
+  }
+
+  /* ── wishlist ──────────────────────────────────────────── */
+  /* Bottles not owned yet, kept in their own array -- never mixed into
+     added/log/consumed/overrides, so they never show up in all(),
+     remaining(), or any of the cellar filters. */
+
+  saveWishlistItem() {
+    const d = this.state.wishDraft;
+    if (!d.name.trim()) { this.setState({ wishHint: "A name is required." }); return; }
+    const item = { id: "wish-" + Date.now() + "-" + this.state.wishlist.length, name: d.name.trim(), region: d.region.trim(), grape: d.grape.trim(), notes: d.notes.trim() };
+    this.persist({ wishlist: this.state.wishlist.concat([item]), modal: null, wishDraft: Object.assign({}, EMPTY_WISH_DRAFT), wishHint: "" });
+  }
+
+  removeWishlistItem(item) {
+    this.persist({ wishlist: this.state.wishlist.filter(function (w) { return w.id !== item.id; }) });
+  }
+
+  /* Converts a wishlist note into a real owned bottle: pre-fills the
+     normal Add-bottle form with what little the wishlist entry has, and
+     drops it from the wishlist immediately (not deferred until save --
+     matches how "Restore"/"unfinish" elsewhere act right away). */
+  addWishlistItemToCellar(item) {
+    this.persist({
+      wishlist: this.state.wishlist.filter(function (w) { return w.id !== item.id; }),
+      modal: "add", editingId: null, addHint: "",
+      draft: Object.assign({}, EMPTY_DRAFT, { name: item.name, region: item.region, grape: item.grape, notes: item.notes })
+    });
   }
 
   /* log[w.id] is a history array — every tasting stays on record, so a
@@ -1503,7 +1791,7 @@ class Component extends DCLogic {
     const knownRegions = REGIONS_BY_COUNTRY[w.country] || [];
     const isKnown = !region || knownRegions.indexOf(region) >= 0;
     this.setState({
-      modal: "add", editingId: w.id, addHint: "",
+      modal: "add", editingId: w.id, addHint: "", pendingPhotoId: null,
       draft: {
         name: w.name, vintage: w.vintage === "n/a" ? "" : w.vintage,
         region: isKnown ? region : OTHER_REGION, regionOther: isKnown ? "" : region,
@@ -1530,7 +1818,8 @@ class Component extends DCLogic {
     /* tabs */
     const tabs = [
       ["cellar", "In the cellar (" + inStock.length + ")"],
-      ["archive", "Finished (" + finishedCount + ")"]
+      ["archive", "Finished (" + finishedCount + ")"],
+      ["wishlist", "Wishlist (" + st.wishlist.length + ")"]
     ].map(function (t) {
       const on = st.tab === t[0];
       return {
@@ -1565,6 +1854,10 @@ class Component extends DCLogic {
     const priceChips = ["Under $40", "$40–100", "Over $100"].map(function (p) {
       const c = self.chip(st.price === p);
       return { label: p, bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ price: st.price === p ? "All" : p }); } };
+    });
+    const drinkFilterChips = [["ready", "Ready to drink"], ["past", "Past peak"]].map(function (d) {
+      const c = self.chip(st.drinkFilter === d[0]);
+      return { label: d[1], bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ drinkFilter: st.drinkFilter === d[0] ? "All" : d[0] }); } };
     });
     const ratingChips = !inCellar ? [4, 5].map(function (n) {
       const c = self.chip(st.minRating === n, true);
@@ -1611,6 +1904,7 @@ class Component extends DCLogic {
         hasStatus: !!statusMeta,
         statusLabel: statusMeta ? statusMeta.label : "",
         statusColor: statusMeta ? statusMeta.color : "",
+        isLastBottle: inCellar && rem === 1,
         onEdit: function () { self.openEdit(w); },
         hasInventoryActions: true,
         showBump: inCellar,
@@ -1782,6 +2076,21 @@ class Component extends DCLogic {
       return { label: s, bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ draft: Object.assign({}, st.draft, { style: s }) }); } };
     });
 
+    const mapCounts = {};
+    all.forEach(function (w) { mapCounts[w.region] = (mapCounts[w.region] || 0) + 1; });
+    const offMapRegions = Object.keys(mapCounts)
+      .filter(function (r) { return MAPPED_REGIONS.indexOf(r) < 0; })
+      .sort(function (a, b) { return mapCounts[b] - mapCounts[a]; })
+      .map(function (r) { return r + " (" + mapCounts[r] + ")"; });
+    const offMapLine = offMapRegions.length ? "Also in the cellar: " + offMapRegions.join(", ") : "";
+
+    const bulkRowCount = parseBulkRows(st.bulkText).rows.length;
+    const bulkStatusLine = st.bulkHint
+      ? st.bulkHint
+      : st.bulkText.trim()
+        ? bulkRowCount + (bulkRowCount === 1 ? " bottle ready to add" : " bottles ready to add")
+        : "";
+
     const target = st.target;
     const sortLabels = { price: "Sorted by price", name: "Sorted by name", vintage: "Sorted by vintage" };
     const nextSort = { price: "name", name: "vintage", vintage: "price" };
@@ -1800,7 +2109,14 @@ class Component extends DCLogic {
       syncStatus: st.syncStatus,
       mapRef: function (el) { self.mapEl = el; },
       onMapLoad: function () { self.postMap(); },
+      onExpandMap: function () { self.setState({ modal: "map" }); },
       mapHint: st.regions.length ? "Tap a bubble to clear" : "Tap a bubble to filter",
+      offMapLine: offMapLine,
+      hasOffMapLine: !!offMapLine,
+      isMapModal: st.modal === "map",
+      bigMapRef: function (el) { self.bigMapEl = el; },
+      onBigMapLoad: function () { self.postMap(); },
+      onResetMapView: function () { if (self.bigMapEl && self.bigMapEl.contentWindow) self.bigMapEl.contentWindow.postMessage({ type: "reset-view" }, "*"); },
       summaryLine: totalBottles + " bottles in the cellar · $" + value.toLocaleString() + " at cost",
       tabs: tabs,
       query: st.query,
@@ -1808,10 +2124,11 @@ class Component extends DCLogic {
       typeChips: typeChips,
       regionChips: regionChips,
       priceChips: priceChips,
+      drinkFilterChips: drinkFilterChips,
       ratingChips: ratingChips,
       hasRatingChips: ratingChips.length > 0,
-      hasFilters: !!(st.query || st.type !== "All" || st.regions.length || st.price !== "All" || st.minRating),
-      onClearFilters: function () { self.setState({ query: "", type: "All", regions: [], price: "All", minRating: 0 }); },
+      hasFilters: !!(st.query || st.type !== "All" || st.regions.length || st.price !== "All" || st.drinkFilter !== "All" || st.minRating),
+      onClearFilters: function () { self.setState({ query: "", type: "All", regions: [], price: "All", drinkFilter: "All", minRating: 0 }); },
       resultLine: (function () {
         const n = inCellar ? list.reduce(function (a, w) { return a + self.remaining(w); }, 0) : list.length;
         return n + (n === 1 ? " bottle" : " bottles");
@@ -1824,6 +2141,21 @@ class Component extends DCLogic {
       emptyBody: inCellar ? "Loosen a filter, or add the bottle you just bought." : "Open a bottle and rate it; it lands here.",
       onSuggest: function () { self.setState({ modal: "suggest", sommelierQuery: "", companions: [], newCompanionName: "" }); },
       onOpenLeaderboard: function () { self.setState({ modal: "leaderboard" }); },
+      showCellarContent: st.tab !== "wishlist",
+      isWishlistTab: st.tab === "wishlist",
+      wishlistCountLabel: st.wishlist.length + (st.wishlist.length === 1 ? " bottle" : " bottles"),
+      wishlistEmpty: st.wishlist.length === 0,
+      wishlistItems: st.wishlist.map(function (w) {
+        return {
+          name: w.name,
+          meta: [w.region, w.grape].filter(Boolean).join(" · "),
+          hasMeta: !!(w.region || w.grape),
+          notes: w.notes,
+          hasNotes: !!w.notes,
+          onRemove: function () { self.removeWishlistItem(w); },
+          onAddToCellar: function () { self.addWishlistItemToCellar(w); }
+        };
+      }),
       showDashboard: true,
       dashBottles: totalBottles + "",
       dashValue: "$" + value.toLocaleString(),
@@ -1838,26 +2170,51 @@ class Component extends DCLogic {
       leaderboardItems: leaderboardItems,
       leaderboardEmpty: leaderboardItems.length === 0,
       isLeaderboardModal: st.modal === "leaderboard",
-      onAdd: function () { self.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "" }); },
+      onAdd: function () {
+        if (st.tab === "wishlist") self.setState({ modal: "wishlistAdd", wishDraft: Object.assign({}, EMPTY_WISH_DRAFT), wishHint: "" });
+        else self.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "", pendingPhotoId: null });
+      },
+      onBulkAdd: function () { self.setState({ modal: "bulk", bulkText: "", bulkHint: "" }); },
       onScanFile: function (e) {
         const file = e.target.files && e.target.files[0];
         e.target.value = "";
         if (file) self.handleScanFile(file);
       },
-      onCloseModal: function () { self.setState({ modal: null, target: null, editingId: null, editingRatingFor: null, sommelierQuery: "", selectedTasters: [], draftRatings: {}, newTasterName: "", companions: [], newCompanionName: "" }); },
+      onCloseModal: function () {
+        if (st.pendingPhotoId) deletePhotoBlob(st.pendingPhotoId);
+        self.setState({ modal: null, target: null, editingId: null, editingRatingFor: null, sommelierQuery: "", selectedTasters: [], draftRatings: {}, newTasterName: "", companions: [], newCompanionName: "", bulkText: "", bulkHint: "", wishDraft: Object.assign({}, EMPTY_WISH_DRAFT), wishHint: "", pendingPhotoId: null });
+      },
       stop: function (e) { e.stopPropagation(); },
       modalOpen: !!st.modal,
       isSuggest: st.modal === "suggest",
       isFinish: st.modal === "finish",
       isAdd: st.modal === "add",
+      isBulkModal: st.modal === "bulk",
+      isWishlistAddModal: st.modal === "wishlistAdd",
+      wishName: st.wishDraft.name,
+      onWishName: function (e) { self.setState({ wishDraft: Object.assign({}, st.wishDraft, { name: e.target.value }), wishHint: "" }); },
+      wishRegion: st.wishDraft.region,
+      onWishRegion: function (e) { self.setState({ wishDraft: Object.assign({}, st.wishDraft, { region: e.target.value }) }); },
+      wishGrape: st.wishDraft.grape,
+      onWishGrape: function (e) { self.setState({ wishDraft: Object.assign({}, st.wishDraft, { grape: e.target.value }) }); },
+      wishNotes: st.wishDraft.notes,
+      onWishNotes: function (e) { self.setState({ wishDraft: Object.assign({}, st.wishDraft, { notes: e.target.value }) }); },
+      wishHint: st.wishHint,
+      onSaveWish: function () { self.saveWishlistItem(); },
       modalTitle: st.modal === "suggest" ? "What are we drinking?"
         : st.modal === "add" ? (st.editingId != null ? "Edit bottle" : "New bottle")
         : st.modal === "leaderboard" ? "Leaderboard"
+        : st.modal === "map" ? "Where it’s from"
+        : st.modal === "bulk" ? "Bulk add"
+        : st.modal === "wishlistAdd" ? "Add to wishlist"
         : st.modal === "finish" && st.editingRatingFor != null ? "Edit rating"
         : "Opened",
       modalSub: st.modal === "suggest" ? "Pick the occasion; the cellar narrows itself."
         : st.modal === "add" ? (st.editingId != null ? "Update the details, including how many bottles you have." : "Added to the cellar straight away.")
         : st.modal === "leaderboard" ? "Every wine you've rated, ranked by average score."
+        : st.modal === "map" ? "Pinch or drag to look around; tap a bubble to filter."
+        : st.modal === "bulk" ? "Paste several bottles at once."
+        : st.modal === "wishlistAdd" ? "A bottle you don't own yet."
         : st.modal === "finish" && st.editingRatingFor != null ? "Correcting the most recent tasting for this wine."
         : "Rate it now while it's in the glass.",
       confirmFinishLabel: st.editingRatingFor != null ? "Save rating" : "Log as finished",
@@ -1888,7 +2245,13 @@ class Component extends DCLogic {
       addHint: st.addHint,
       saveBg: st.draft.name.trim() ? "var(--color-accent)" : "var(--color-neutral-400)",
       saveLabel: st.editingId != null ? "Save changes" : "Add to cellar",
-      onSaveBottle: function () { self.saveDraft(); }
+      onSaveBottle: function () { self.saveDraft(); },
+      bulkText: st.bulkText,
+      onBulkText: function (e) { self.setState({ bulkText: e.target.value, bulkHint: "" }); },
+      bulkStatusLine: bulkStatusLine,
+      bulkSaveBg: bulkRowCount > 0 ? "var(--color-accent)" : "var(--color-neutral-400)",
+      bulkSaveLabel: bulkRowCount > 0 ? "Add " + bulkRowCount + (bulkRowCount === 1 ? " bottle" : " bottles") : "Add bottles",
+      onSaveBulk: function () { self.saveBulk(); }
     };
   }
 }
