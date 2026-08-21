@@ -4,7 +4,7 @@
    on demand elsewhere and deliberately left out: they should fail
    gracefully offline (scanning/cloud sync just won't work without a
    connection), not get force-cached as stale copies. */
-const CACHE_NAME = "kevs-cellar-shell-v2";
+const CACHE_NAME = "kevs-cellar-shell-v3";
 const SHELL_FILES = [
   "./",
   "./index.html",

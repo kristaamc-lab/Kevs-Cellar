@@ -118,10 +118,18 @@
           <div style="font-size: 14px; color: var(--color-neutral-700);">{{ summaryLine }}</div>
         </div>
         <button type="button" onClick="{{ onOpenLeaderboard }}" title="Leaderboard" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 1px solid var(--color-divider); cursor: pointer; background: var(--color-surface); color: var(--color-accent-700); font-size: 19px; line-height: 1; margin-top: 2px;" style-hover="background: var(--color-neutral-200);">&#127942;</button>
-        <label title="Scan or upload a label" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 1px solid var(--color-divider); cursor: pointer; background: var(--color-surface); color: var(--color-accent-700); font-size: 19px; line-height: 1; margin-top: 2px; display: flex; align-items: center; justify-content: center; position: relative;">
-          &#128247;
-          <input type="file" accept="image/*" onChange="{{ onScanFile }}" style="position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0;">
-        </label>
+        <div style="flex: none; position: relative; margin-top: 2px;">
+          <button type="button" onClick="{{ onToggleScanMenu }}" title="Scan or upload a label" style="width: 46px; height: 46px; border-radius: 999px; border: 1px solid var(--color-divider); cursor: pointer; background: var(--color-surface); color: var(--color-accent-700); font-size: 19px; line-height: 1; display: flex; align-items: center; justify-content: center;">&#128247;</button>
+          <sc-if value="{{ scanMenuOpen }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ onCloseScanMenu }}" style="position: fixed; inset: 0; z-index: 45;"></div>
+            <div style="position: absolute; top: 52px; right: 0; z-index: 46; background: var(--color-surface); border: 1px solid var(--color-divider); border-radius: var(--radius-md); box-shadow: var(--shadow-md); overflow: hidden; min-width: 190px; animation: cardIn 160ms ease both;">
+              <button type="button" onClick="{{ onOpenCamera }}" style="display: block; width: 100%; text-align: left; padding: 12px 16px; border: 0; background: transparent; cursor: pointer; font-size: 14px; color: var(--color-neutral-900); white-space: nowrap;">&#128247; Take a photo</button>
+              <button type="button" onClick="{{ onOpenGallery }}" style="display: block; width: 100%; text-align: left; padding: 12px 16px; border: 0; border-top: 1px solid var(--color-divider); background: transparent; cursor: pointer; font-size: 14px; color: var(--color-neutral-900); white-space: nowrap;">&#128444;&#65039; Choose from library</button>
+            </div>
+          </sc-if>
+          <input type="file" accept="image/*" capture="environment" ref="{{ cameraInputRef }}" onChange="{{ onScanFile }}" style="position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0;">
+          <input type="file" accept="image/*" ref="{{ galleryInputRef }}" onChange="{{ onScanFile }}" style="position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0;">
+        </div>
         <button type="button" onClick="{{ onAdd }}" title="Add a bottle" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 0; cursor: pointer; background: var(--color-accent); color: var(--color-accent-100); font-size: 26px; line-height: 1; box-shadow: var(--shadow-sm); margin-top: 2px;" style-hover="background: var(--color-accent-600);">+</button>
       </div>
       <div style="display: flex; gap: var(--space-3); margin-top: var(--space-2); flex-wrap: wrap; align-items: center;">
@@ -1091,12 +1099,15 @@ class Component extends DCLogic {
       unlocked: !FIREBASE_ENABLED || !REQUIRE_PASSCODE, passcodeInput: "", lockError: "", syncStatus: "",
       catalog: null, bulkText: "", bulkHint: "",
       wishlist: s.wishlist, wishDraft: Object.assign({}, EMPTY_WISH_DRAFT), wishHint: "",
-      photoCache: {}, draftPhotoUrl: null, draftHasPhoto: false, draftPhotoChanged: false, photoLoading: false
+      photoCache: {}, draftPhotoUrl: null, draftHasPhoto: false, draftPhotoChanged: false, photoLoading: false,
+      scanMenuOpen: false
     };
   })();
 
   mapEl = null;
   bigMapEl = null;
+  cameraInputEl = null;
+  galleryInputEl = null;
   docRef = null;
   unsubscribeCloud = null;
   pushTimer = null;
@@ -1360,7 +1371,7 @@ class Component extends DCLogic {
     if (this._tesseractLoading) return this._tesseractLoading;
     this._tesseractLoading = new Promise(function (resolve, reject) {
       const script = document.createElement("script");
-      script.src = "https://unpkg.com/tesseract.js@5/dist/tesseract.min.js";
+      script.src = "https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js";
       script.onload = function () { resolve(); };
       script.onerror = function () { reject(new Error("Failed to load OCR library")); };
       document.head.appendChild(script);
@@ -1379,8 +1390,21 @@ class Component extends DCLogic {
 
   /* Producer/cuvée names are usually the most prominent text on a label —
      approximated here as the tallest recognized line of letters (not a
-     pure number, not too short to be noise). */
-  guessName(lines, fallbackText) {
+     pure number, not too short to be noise). Tesseract.js v4+ no longer
+     puts a flat `lines` array on the result — line data is nested under
+     blocks[].paragraphs[].lines[], so it has to be flattened first. */
+  flattenLines(blocks) {
+    const lines = [];
+    (blocks || []).forEach(function (block) {
+      (block.paragraphs || []).forEach(function (para) {
+        (para.lines || []).forEach(function (line) { lines.push(line); });
+      });
+    });
+    return lines;
+  }
+
+  guessName(blocks, fallbackText) {
+    const lines = this.flattenLines(blocks);
     const candidates = (lines || [])
       .map(function (l) {
         const text = (l.text || "").replace(/\s+/g, " ").trim();
@@ -1428,7 +1452,7 @@ class Component extends DCLogic {
         if (self.state.modal !== "add" || self.state.editingId != null) return;
         const data = (result && result.data) || {};
         const vintage = self.guessVintage(data.text);
-        const name = self.guessName(data.lines, data.text);
+        const name = self.guessName(data.blocks, data.text);
         self.setState({
           draft: Object.assign({}, self.state.draft, {
             name: name || self.state.draft.name,
@@ -1439,7 +1463,8 @@ class Component extends DCLogic {
             : "Couldn't make out much on that label — fill in the details below."
         });
       })
-      .catch(function () {
+      .catch(function (err) {
+        console.error("OCR scan failed:", err);
         if (self.state.modal !== "add" || self.state.editingId != null) return;
         self.setState({ addHint: "Couldn't read that label — fill in the details manually." });
       });
@@ -2416,6 +2441,13 @@ class Component extends DCLogic {
         else self.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "", pendingPhotoId: null, draftPhotoUrl: null, draftHasPhoto: false, draftPhotoChanged: false });
       },
       onBulkAdd: function () { self.setState({ modal: "bulk", bulkText: "", bulkHint: "" }); },
+      scanMenuOpen: st.scanMenuOpen,
+      onToggleScanMenu: function () { self.setState({ scanMenuOpen: !st.scanMenuOpen }); },
+      onCloseScanMenu: function () { self.setState({ scanMenuOpen: false }); },
+      cameraInputRef: function (el) { self.cameraInputEl = el; },
+      galleryInputRef: function (el) { self.galleryInputEl = el; },
+      onOpenCamera: function () { self.setState({ scanMenuOpen: false }); if (self.cameraInputEl) self.cameraInputEl.click(); },
+      onOpenGallery: function () { self.setState({ scanMenuOpen: false }); if (self.galleryInputEl) self.galleryInputEl.click(); },
       onScanFile: function (e) {
         const file = e.target.files && e.target.files[0];
         e.target.value = "";
