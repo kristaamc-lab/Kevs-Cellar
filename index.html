@@ -31,6 +31,49 @@
   a:hover { color: var(--color-accent-600); }
   input::placeholder { color: var(--color-neutral-500); }
   @keyframes riseIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  /* Tactile press feedback everywhere. Most chip/tab/star buttons already
+     carry an inline "transition: all ..." (widened below where it was
+     narrower), so this only needs to add transform for the few plain
+     buttons that had no inline transition at all -- inline always wins
+     the cascade, so nothing here fights an existing declaration. */
+  button { transition: transform 110ms ease; }
+  button:active { transform: scale(0.96); }
+  @media (hover: hover) {
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: scale(0.96); }
+  }
+
+  /* Backdrop fades in alongside the modal panel's existing riseIn. */
+  .modal-backdrop { animation: fadeIn 180ms ease both; }
+
+  /* Cards animate in as they appear -- on first load, and again for any
+     card that's newly inserted by a filter/tab change (unchanged cards
+     that just stay in place don't replay this, since the DOM node
+     persists across the re-render). Stagger is capped at 10 cards; a
+     screenful settles together rather than one at a time. */
+  .cellar-grid > article { animation: cardIn 320ms ease both; }
+  .cellar-grid > article:nth-child(1) { animation-delay: 0ms; }
+  .cellar-grid > article:nth-child(2) { animation-delay: 25ms; }
+  .cellar-grid > article:nth-child(3) { animation-delay: 50ms; }
+  .cellar-grid > article:nth-child(4) { animation-delay: 75ms; }
+  .cellar-grid > article:nth-child(5) { animation-delay: 100ms; }
+  .cellar-grid > article:nth-child(6) { animation-delay: 125ms; }
+  .cellar-grid > article:nth-child(7) { animation-delay: 150ms; }
+  .cellar-grid > article:nth-child(8) { animation-delay: 175ms; }
+  .cellar-grid > article:nth-child(9) { animation-delay: 200ms; }
+  .cellar-grid > article:nth-child(n+10) { animation-delay: 225ms; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 
   /* Desktop: sidebar of controls + a non-stretching grid of bottle cards.
      The template's elements carry inline styles (highest specificity), so
@@ -75,9 +118,9 @@
           <div style="font-size: 14px; color: var(--color-neutral-700);">{{ summaryLine }}</div>
         </div>
         <button type="button" onClick="{{ onOpenLeaderboard }}" title="Leaderboard" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 1px solid var(--color-divider); cursor: pointer; background: var(--color-surface); color: var(--color-accent-700); font-size: 19px; line-height: 1; margin-top: 2px;" style-hover="background: var(--color-neutral-200);">&#127942;</button>
-        <label title="Scan a label" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 1px solid var(--color-divider); cursor: pointer; background: var(--color-surface); color: var(--color-accent-700); font-size: 19px; line-height: 1; margin-top: 2px; display: flex; align-items: center; justify-content: center; position: relative;">
+        <label title="Scan or upload a label" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 1px solid var(--color-divider); cursor: pointer; background: var(--color-surface); color: var(--color-accent-700); font-size: 19px; line-height: 1; margin-top: 2px; display: flex; align-items: center; justify-content: center; position: relative;">
           &#128247;
-          <input type="file" accept="image/*" capture="environment" onChange="{{ onScanFile }}" style="position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0;">
+          <input type="file" accept="image/*" onChange="{{ onScanFile }}" style="position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0;">
         </label>
         <button type="button" onClick="{{ onAdd }}" title="Add a bottle" style="flex: none; width: 46px; height: 46px; border-radius: 999px; border: 0; cursor: pointer; background: var(--color-accent); color: var(--color-accent-100); font-size: 26px; line-height: 1; box-shadow: var(--shadow-sm); margin-top: 2px;" style-hover="background: var(--color-accent-600);">+</button>
       </div>
@@ -92,7 +135,10 @@
           <sc-if value="{{ showChangePasscode }}" hint-placeholder-val="{{ false }}">
             <button type="button" onClick="{{ onChangePasscode }}" style="border: 0; background: transparent; color: var(--color-accent-700); font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0;">Change passcode</button>
           </sc-if>
-          <span style="font-size: 11.5px; color: var(--color-neutral-600); margin-left: auto;">{{ syncStatus }}</span>
+          <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--color-neutral-600); margin-left: auto;">
+            <span style="width: 6px; height: 6px; border-radius: 999px; background: {{ syncDotColor }}; flex: none; animation: {{ syncDotAnim }};"></span>
+            {{ syncStatus }}
+          </span>
         </sc-if>
       </div>
     </header>
@@ -110,7 +156,7 @@
 
     <div style="display: flex; gap: var(--space-1); background: var(--color-surface); padding: 5px; border-radius: 999px; margin-bottom: var(--space-4);">
       <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="2">
-        <button type="button" onClick="{{ tab.onClick }}" style="flex: 1; border: 0; cursor: pointer; border-radius: 999px; padding: 10px 8px; font-size: 13px; font-weight: 700; background: {{ tab.bg }}; color: {{ tab.fg }}; box-shadow: {{ tab.shadow }}; transition: background 140ms ease;">{{ tab.label }}</button>
+        <button type="button" onClick="{{ tab.onClick }}" style="flex: 1; border: 0; cursor: pointer; border-radius: 999px; padding: 10px 8px; font-size: 13px; font-weight: 700; background: {{ tab.bg }}; color: {{ tab.fg }}; box-shadow: {{ tab.shadow }}; transition: all 140ms ease;">{{ tab.label }}</button>
       </sc-for>
     </div>
 
@@ -396,7 +442,7 @@
           <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: var(--space-1);">Your rating</div>
           <div style="display: flex; gap: 4px;">
             <sc-for list="{{ starButtons }}" as="s" hint-placeholder-count="5">
-              <button type="button" onClick="{{ s.onClick }}" style="border: 0; background: transparent; cursor: pointer; font-size: 32px; line-height: 1; padding: 4px 3px; color: {{ s.color }}; transition: color 120ms ease;">&#9733;</button>
+              <button type="button" onClick="{{ s.onClick }}" style="border: 0; background: transparent; cursor: pointer; font-size: 32px; line-height: 1; padding: 4px 3px; color: {{ s.color }}; transition: all 120ms ease;">&#9733;</button>
             </sc-for>
           </div>
           <div style="font-size: 13px; color: var(--color-neutral-700); margin: var(--space-1) 0 var(--space-4); min-height: 20px;">{{ ratingWord }}</div>
@@ -419,7 +465,7 @@
                   <div style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">{{ tr.name }}</div>
                   <div style="display: flex; gap: 4px;">
                     <sc-for list="{{ tr.starButtons }}" as="s" hint-placeholder-count="5">
-                      <button type="button" onClick="{{ s.onClick }}" style="border: 0; background: transparent; cursor: pointer; font-size: 26px; line-height: 1; padding: 3px 2px; color: {{ s.color }}; transition: color 120ms ease;">&#9733;</button>
+                      <button type="button" onClick="{{ s.onClick }}" style="border: 0; background: transparent; cursor: pointer; font-size: 26px; line-height: 1; padding: 3px 2px; color: {{ s.color }}; transition: all 120ms ease;">&#9733;</button>
                     </sc-for>
                   </div>
                   <div style="font-size: 12.5px; color: var(--color-neutral-700); margin-top: 2px;">{{ tr.ratingWord }}</div>
@@ -2107,6 +2153,10 @@ class Component extends DCLogic {
       showChangePasscode: FIREBASE_ENABLED && REQUIRE_PASSCODE && st.unlocked,
       onChangePasscode: function () { self.changePasscode(); },
       syncStatus: st.syncStatus,
+      syncDotColor: st.syncStatus === "Synced" ? "#7a8a5e"
+        : st.syncStatus.indexOf("Offline") === 0 ? "#a8453a"
+        : "#c67139",
+      syncDotAnim: st.syncStatus === "Connecting…" ? "pulseDot 1.1s ease-in-out infinite" : "none",
       mapRef: function (el) { self.mapEl = el; },
       onMapLoad: function () { self.postMap(); },
       onExpandMap: function () { self.setState({ modal: "map" }); },
