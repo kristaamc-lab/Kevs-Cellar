@@ -131,6 +131,7 @@
           <input type="file" accept="application/json" onChange="{{ onImport }}" style="position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0;">
         </label>
         <button type="button" onClick="{{ onBulkAdd }}" style="border: 0; background: transparent; color: var(--color-accent-700); font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0;">Bulk add</button>
+        <button type="button" onClick="{{ onOpenTimeline }}" style="border: 0; background: transparent; color: var(--color-accent-700); font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0;">Timeline</button>
         <sc-if value="{{ hasCloudSync }}" hint-placeholder-val="{{ false }}">
           <sc-if value="{{ showChangePasscode }}" hint-placeholder-val="{{ false }}">
             <button type="button" onClick="{{ onChangePasscode }}" style="border: 0; background: transparent; color: var(--color-accent-700); font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0;">Change passcode</button>
@@ -189,6 +190,15 @@
         <button type="button" onClick="{{ chip.onClick }}" style="border: 1px solid {{ chip.border }}; background: {{ chip.bg }}; color: {{ chip.fg }}; border-radius: 999px; padding: 7px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 130ms ease;">{{ chip.label }}</button>
       </sc-for>
     </div>
+
+    <sc-if value="{{ hasTagChips }}" hint-placeholder-val="{{ false }}">
+      <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 6px;">Tags</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: var(--space-3);">
+        <sc-for list="{{ tagChips }}" as="chip" hint-placeholder-count="3">
+          <button type="button" onClick="{{ chip.onClick }}" style="border: 1px solid {{ chip.border }}; background: {{ chip.bg }}; color: {{ chip.fg }}; border-radius: 999px; padding: 7px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 130ms ease;">{{ chip.label }}</button>
+        </sc-for>
+      </div>
+    </sc-if>
 
     <sc-if value="{{ hasRatingChips }}" hint-placeholder-val="{{ false }}">
       <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 6px;">Rating</div>
@@ -275,9 +285,15 @@
                   <sc-if value="{{ w.hasStatus }}" hint-placeholder-val="{{ false }}">
                     <span style="display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 4px 10px 4px 8px; font-size: 11px; font-weight: 600; color: var(--color-neutral-800); border: 1px solid var(--color-divider);"><span style="width: 7px; height: 7px; border-radius: 999px; background: {{ w.statusColor }}; flex: none;"></span>{{ w.statusLabel }}</span>
                   </sc-if>
+                  <sc-if value="{{ w.hasPhoto }}" hint-placeholder-val="{{ false }}">
+                    <span title="Has a label photo" style="font-size: 13px;">&#128247;</span>
+                  </sc-if>
                   <sc-if value="{{ w.isLastBottle }}" hint-placeholder-val="{{ false }}">
                     <span style="border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 700; color: var(--color-accent-2-800); background: var(--color-accent-2-200);">Last bottle</span>
                   </sc-if>
+                  <sc-for list="{{ w.tagBadges }}" as="tag" hint-placeholder-count="0">
+                    <span style="border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--color-accent-2-800); border: 1px solid var(--color-accent-2-300);">{{ tag.label }}</span>
+                  </sc-for>
                   <sc-if value="{{ w.hasNote }}" hint-placeholder-val="{{ false }}">
                     <span style="border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--color-neutral-700); border: 1px solid var(--color-divider);">{{ w.note }}</span>
                   </sc-if>
@@ -424,6 +440,26 @@
           </div>
         </sc-if>
 
+        <sc-if value="{{ isTimelineModal }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: var(--space-2); max-height: 60vh; overflow-y: auto;">
+            <sc-for list="{{ timelineItems }}" as="ev" hint-placeholder-count="4">
+              <div style="background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); display: flex; gap: var(--space-2); align-items: flex-start;">
+                <span style="font-size: 15px; flex: none; margin-top: 1px;">{{ ev.icon }}</span>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-size: 13.5px; line-height: 1.35;">{{ ev.text }}</div>
+                  <sc-if value="{{ ev.hasNote }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size: 12.5px; color: var(--color-neutral-700); margin-top: 2px;">{{ ev.note }}</div>
+                  </sc-if>
+                </div>
+                <div style="font-size: 11px; color: var(--color-neutral-600); flex: none; white-space: nowrap;">{{ ev.when }}</div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ timelineEmpty }}" hint-placeholder-val="{{ false }}">
+              <div style="text-align: center; padding: var(--space-6) 0; color: var(--color-neutral-600); font-size: 13.5px;">Nothing to show yet — add a bottle, rate one, or save something to your wishlist.</div>
+            </sc-if>
+          </div>
+        </sc-if>
+
         <sc-if value="{{ isMapModal }}" hint-placeholder-val="{{ false }}">
           <div style="position: relative;">
             <iframe src="wine-map.html?interactive=1" title="Cellar region map, expanded" ref="{{ bigMapRef }}" onLoad="{{ onBigMapLoad }}" style="width: 100%; height: 60vh; border: 0; display: block; background: var(--color-surface); border-radius: var(--radius-md);"></iframe>
@@ -484,6 +520,15 @@
 
         <sc-if value="{{ isAdd }}" hint-placeholder-val="{{ false }}">
           <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+            <sc-if value="{{ photoLoading }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size: 12.5px; color: var(--color-neutral-600); text-align: center; padding: var(--space-4) 0;">Loading photo…</div>
+            </sc-if>
+            <sc-if value="{{ hasDraftPhoto }}" hint-placeholder-val="{{ false }}">
+              <div style="position: relative;">
+                <img src="{{ draftPhotoUrl }}" alt="Label photo" style="width: 100%; max-height: 260px; object-fit: cover; border-radius: var(--radius-md); display: block;">
+                <button type="button" onClick="{{ onRemovePhoto }}" style="position: absolute; top: var(--space-2); right: var(--space-2); border: 0; cursor: pointer; border-radius: 999px; padding: 6px 12px; font-size: 11.5px; font-weight: 600; background: rgba(32,30,29,0.65); color: #fff;">Remove photo</button>
+              </div>
+            </sc-if>
             <sc-for list="{{ addFields }}" as="f" hint-placeholder-count="12">
               <label style="display: block;">
                 <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-neutral-600); font-weight: 700; margin-bottom: 5px;">{{ f.label }}</div>
@@ -521,7 +566,7 @@
         <sc-if value="{{ isBulkModal }}" hint-placeholder-val="{{ false }}">
           <div style="font-size: 12.5px; color: var(--color-neutral-700); margin-bottom: var(--space-2);">
             One bottle per line. Paste from a spreadsheet (tab-separated) or type comma-separated, in this column order:<br>
-            <span style="font-family: monospace; font-size: 11px; display: inline-block; margin-top: 4px;">name, vintage, country, region, grape, cost, qty, already-finished, rack, shelf, drink-from, drink-by, notes, style</span>
+            <span style="font-family: monospace; font-size: 11px; display: inline-block; margin-top: 4px;">name, vintage, country, region, grape, cost, qty, already-finished, rack, shelf, drink-from, drink-by, notes, style, tags</span>
           </div>
           <textarea value="{{ bulkText }}" onInput="{{ onBulkText }}" placeholder="Domaine Leflaive Puligny-Montrachet, 2022, France, Burgundy, Chardonnay, 120, 2, 0, A, 3, 2024, 2032, from Krista's trip, White" style="width: 100%; min-height: 160px; border: 1px solid var(--color-divider); background: #fff; border-radius: var(--radius-md); padding: var(--space-3); font-size: 13px; font-family: monospace; color: var(--color-text); box-sizing: border-box; margin-bottom: var(--space-2);"></textarea>
           <div style="font-size: 12.5px; color: var(--color-neutral-600); min-height: 18px; margin-bottom: var(--space-3);">{{ bulkStatusLine }}</div>
@@ -601,25 +646,16 @@ function hashPasscode(text) {
   return window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(text.trim())).then(bufferToHex);
 }
 
-/* Label photos: device-local only, never part of the persist()/Firestore
-   blob (that JSON gets rewritten on every edit -- a few embedded photos
-   would slow every interaction and blow past both localStorage's ~5-10MB
-   quota and Firestore's 1MiB-per-document limit almost immediately). Kept
-   in their own IndexedDB store, keyed by wine id, downsized to a JPEG
-   before storage so a multi-MB phone photo lands around 30-80KB. */
-const PHOTO_DB_NAME = "kevs-cellar-photos";
-const PHOTO_STORE = "photos";
-
-function openPhotoDB() {
-  return new Promise(function (resolve, reject) {
-    if (!window.indexedDB) { reject(new Error("IndexedDB not available")); return; }
-    const req = window.indexedDB.open(PHOTO_DB_NAME, 1);
-    req.onupgradeneeded = function () { req.result.createObjectStore(PHOTO_STORE); };
-    req.onsuccess = function () { resolve(req.result); };
-    req.onerror = function () { reject(req.error); };
-  });
-}
-
+/* Label photos: each wine's photo is its OWN Firestore document, in a
+   "photos/{docId}/items/{wineId}" subcollection -- not embedded in the
+   single cellars/{docId} deltas blob, which holds every wine's overrides
+   together and would blow past Firestore's 1MiB-per-document limit after
+   just a handful of scans. One document per photo means the limit
+   applies per photo instead, same trick the nail journal uses for its
+   per-design documents. Wines only carry a small hasPhoto boolean in
+   their normal record (already synced with everything else); the actual
+   image data is fetched lazily, on demand, and cached in memory for the
+   session (state.photoCache) rather than persisted again locally. */
 function downscaleImage(file, maxDim, quality) {
   return new Promise(function (resolve, reject) {
     const img = new Image();
@@ -638,28 +674,33 @@ function downscaleImage(file, maxDim, quality) {
   });
 }
 
-function savePhotoBlob(id, blob) {
-  return openPhotoDB().then(function (db) {
-    return new Promise(function (resolve, reject) {
-      const tx = db.transaction(PHOTO_STORE, "readwrite");
-      tx.objectStore(PHOTO_STORE).put(blob, id);
-      tx.oncomplete = function () { resolve(); };
-      tx.onerror = function () { reject(tx.error); };
-    });
+function blobToDataURL(blob) {
+  return new Promise(function (resolve, reject) {
+    const r = new FileReader();
+    r.onload = function () { resolve(r.result); };
+    r.onerror = reject;
+    r.readAsDataURL(blob);
   });
 }
 
-/* Best-effort cleanup for a scan that never got saved (modal cancelled) --
-   never blocks the UI on failure, this is just tidiness. */
-function deletePhotoBlob(id) {
-  return openPhotoDB().then(function (db) {
-    return new Promise(function (resolve) {
-      const tx = db.transaction(PHOTO_STORE, "readwrite");
-      tx.objectStore(PHOTO_STORE).delete(id);
-      tx.oncomplete = function () { resolve(); };
-      tx.onerror = function () { resolve(); };
+/* Compresses straight from the original file, then keeps shrinking until
+   the base64 result comfortably fits inside Firestore's 1MiB document
+   limit -- ordinary phone photos land on the first pass; this is a
+   safety net for the unusually detailed ones. Same retry ladder as the
+   nail journal. */
+function compressPhotoToDataURL(file) {
+  const attempts = [[800, 0.6], [640, 0.5], [480, 0.4], [360, 0.35]];
+  const maxChars = 700000;
+  function tryAt(i) {
+    const step = attempts[i];
+    return downscaleImage(file, step[0], step[1]).then(function (blob) {
+      return blobToDataURL(blob).then(function (dataUrl) {
+        if (dataUrl.length <= maxChars || i === attempts.length - 1) return dataUrl;
+        return tryAt(i + 1);
+      });
     });
-  }).catch(function () {});
+  }
+  return tryAt(0);
 }
 
 /* Cellar inventory — mirrored in wines.json.
@@ -914,7 +955,9 @@ function normalise(o) {
     rack: o.rack || "", shelf: o.shelf || "",
     drinkStart: o.drinkStart ? Number(o.drinkStart) : null,
     drinkEnd: o.drinkEnd ? Number(o.drinkEnd) : null,
-    note: notes.replace(/sparkling\s*\/?\s*/i, "").trim()
+    note: notes.replace(/sparkling\s*\/?\s*/i, "").trim(),
+    tags: Array.isArray(o.tags) ? o.tags : [],
+    hasPhoto: !!o.hasPhoto
   };
 }
 
@@ -937,7 +980,8 @@ function draftToRecord(d) {
     qty: isNaN(n) ? 1 : Math.max(0, n),
     rack: d.rack.trim(), shelf: d.shelf.trim(),
     drinkStart: parseInt(d.drinkStart, 10) || null,
-    drinkEnd: parseInt(d.drinkEnd, 10) || null
+    drinkEnd: parseInt(d.drinkEnd, 10) || null,
+    tags: String(d.tags || "").split(",").map(function (t) { return t.trim(); }).filter(Boolean)
   };
   return { rec: rec, baselineN: baselineN };
 }
@@ -962,7 +1006,7 @@ function parseBulkRows(text) {
       name: name, vintage: get(1), country: get(2), region: get(3), regionOther: "",
       grape: get(4), cost: get(5), qty: get(6), baseline: get(7),
       rack: get(8), shelf: get(9), drinkStart: get(10), drinkEnd: get(11),
-      notes: get(12), style: style
+      notes: get(12), style: style, tags: get(14)
     });
   });
   return { rows: rows, totalLines: lines.length };
@@ -1001,6 +1045,21 @@ function entryRatings(e) {
   return [];
 }
 
+/* Wines added via the app and wishlist items both carry their creation
+   time baked into their synthetic id ("new-<ms>", "new-<ms>-<i>",
+   "wish-<ms>-<i>") rather than a separate stored field -- this pulls
+   that first long digit run back out for the timeline. Returns 0 (sorts
+   last) for anything without one, e.g. the original 179 catalog ids. */
+function idTimestamp(id) {
+  const m = /-(\d{10,})/.exec(String(id));
+  return m ? Number(m[1]) : 0;
+}
+
+function formatWhen(ts) {
+  if (!ts) return "";
+  return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
 function loadStore() {
   try {
     const raw = window.localStorage.getItem(KEY);
@@ -1014,14 +1073,14 @@ function loadStore() {
   } catch (e) { return { log: {}, added: [], consumed: {}, overrides: {}, baseline: {}, people: DEFAULT_PEOPLE.slice(), wishlist: [] }; }
 }
 
-const EMPTY_DRAFT = { name: "", vintage: "", region: "", regionOther: "", country: "", grape: "", cost: "", notes: "", style: "White", qty: "1", baseline: "0", rack: "", shelf: "", drinkStart: "", drinkEnd: "" };
+const EMPTY_DRAFT = { name: "", vintage: "", region: "", regionOther: "", country: "", grape: "", cost: "", notes: "", style: "White", qty: "1", baseline: "0", rack: "", shelf: "", drinkStart: "", drinkEnd: "", tags: "" };
 const EMPTY_WISH_DRAFT = { name: "", region: "", grape: "", notes: "" };
 
 class Component extends DCLogic {
   state = (function () {
     const s = loadStore();
     return {
-      tab: "cellar", query: "", type: "All", regions: [], price: "All", drinkFilter: "All", minRating: 0,
+      tab: "cellar", query: "", type: "All", regions: [], price: "All", drinkFilter: "All", tagFilter: [], minRating: 0,
       sort: "price", modal: null, target: null, occasion: "aperitivo", editingId: null,
       sommelierQuery: "", editingRatingFor: null,
       draftRating: 0, draftNote: "", draft: Object.assign({}, EMPTY_DRAFT),
@@ -1032,7 +1091,7 @@ class Component extends DCLogic {
       unlocked: !FIREBASE_ENABLED || !REQUIRE_PASSCODE, passcodeInput: "", lockError: "", syncStatus: "",
       catalog: null, bulkText: "", bulkHint: "",
       wishlist: s.wishlist, wishDraft: Object.assign({}, EMPTY_WISH_DRAFT), wishHint: "",
-      pendingPhotoId: null
+      photoCache: {}, draftPhotoUrl: null, draftHasPhoto: false, draftPhotoChanged: false, photoLoading: false
     };
   })();
 
@@ -1043,6 +1102,7 @@ class Component extends DCLogic {
   pushTimer = null;
   catalogRef = null;
   unsubscribeCatalog = null;
+  photosColRef = null;
 
   componentDidMount() {
     const self = this;
@@ -1133,6 +1193,7 @@ class Component extends DCLogic {
       const db = window.firebase.firestore();
       self.docRef = db.collection("cellars").doc(hash);
       self.catalogRef = db.collection("catalogs").doc(hash);
+      self.photosColRef = db.collection("photos").doc(hash).collection("items");
       return Promise.all([self.docRef.get(), self.catalogRef.get()]);
     }).then(function (results) {
       const snap = results[0], catalogSnap = results[1];
@@ -1341,18 +1402,26 @@ class Component extends DCLogic {
      fills in whatever OCR could make out once it resolves — best-effort
      auto-fill of vintage + a name guess only; everything else (region,
      grape, price, etc.) still needs a human, same as any other add.
-     Also downsizes and stores the photo itself in IndexedDB under the id
-     this bottle will get if saved — saveDraft() reuses pendingPhotoId
-     instead of minting a fresh one, so the photo and the wine record end
-     up sharing the same key without any post-hoc re-keying. */
+     Also compresses the photo itself down to a data: URL under the id
+     this bottle will get if saved — saveDraft() reuses pendingPhotoId as
+     the wine's real id instead of minting a fresh one, so the photo
+     (written to Firestore under that id) and the wine record end up
+     sharing the same key without any post-hoc re-keying. */
   handleScanFile(file) {
     if (!file) return;
     const self = this;
     const photoId = "new-" + Date.now();
-    this.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "Reading the label…", pendingPhotoId: photoId });
-    downscaleImage(file, 700, 0.6)
-      .then(function (blob) { return savePhotoBlob(photoId, blob); })
-      .catch(function () {});
+    this.setState({
+      modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "Reading the label…",
+      pendingPhotoId: photoId, draftPhotoUrl: null, draftHasPhoto: false, draftPhotoChanged: false, photoLoading: true
+    });
+    compressPhotoToDataURL(file).then(function (dataUrl) {
+      if (self.state.pendingPhotoId !== photoId) return; // scanned again, or backed out, before this resolved
+      self.setState({ draftPhotoUrl: dataUrl, draftHasPhoto: true, draftPhotoChanged: true, photoLoading: false });
+    }).catch(function () {
+      if (self.state.pendingPhotoId !== photoId) return;
+      self.setState({ photoLoading: false });
+    });
     this.ensureTesseract()
       .then(function () { return window.Tesseract.recognize(file, "eng"); })
       .then(function (result) {
@@ -1472,6 +1541,7 @@ class Component extends DCLogic {
     if (s.price === "Over $100" && w.cost <= 100) return false;
     if (s.drinkFilter === "ready" && drinkStatus(w) !== "ready") return false;
     if (s.drinkFilter === "past" && drinkStatus(w) !== "past") return false;
+    if (s.tagFilter.length && !s.tagFilter.some(function (t) { return w.tags.indexOf(t) >= 0; })) return false;
     if (s.query) {
       const hay = (w.name + " " + w.region + " " + w.grape + " " + w.country + " " + w.notes).toLowerCase();
       if (hay.indexOf(s.query.toLowerCase()) < 0) return false;
@@ -1512,6 +1582,43 @@ class Component extends DCLogic {
         if (sb.count !== sa.count) return sb.count - sa.count;
         return a.name.localeCompare(b.name);
       });
+  }
+
+  /* A chronological feed across every wine, not just per-wine stats:
+     every tasting logged (from log[w.id]'s real `at` timestamps), every
+     bottle you've added, and every wishlist entry (both using the
+     timestamp baked into their id, since neither is stored separately).
+     The original 179-wine catalog never appears here -- it predates the
+     app, there's no "added" moment to show. Capped at 60 so one very
+     active wine can't push everything else off a long scroll. */
+  buildTimeline() {
+    const self = this;
+    const events = [];
+    this.all().forEach(function (w) {
+      const entries = self.state.log[w.id] || [];
+      entries.forEach(function (e) {
+        const ratings = entryRatings(e);
+        if (ratings.length) {
+          ratings.forEach(function (pr) {
+            events.push({
+              at: e.at, type: "rating", wineName: w.name, person: pr.person, rating: pr.rating, note: e.note
+            });
+          });
+        } else {
+          events.push({ at: e.at, type: "opened", wineName: w.name, note: e.note });
+        }
+      });
+    });
+    this.state.added.forEach(function (a) {
+      events.push({ at: idTimestamp(a.id), type: "added", wineName: a.name });
+    });
+    this.state.wishlist.forEach(function (w) {
+      events.push({ at: idTimestamp(w.id), type: "wishlist", wineName: w.name });
+    });
+    return events
+      .filter(function (e) { return e.at > 0; })
+      .sort(function (a, b) { return b.at - a.at; })
+      .slice(0, 60);
   }
 
   /* ── pairing ───────────────────────────────────────────── */
@@ -1703,18 +1810,63 @@ class Component extends DCLogic {
     if (!d.name.trim()) { this.setState({ addHint: "A producer or bottle name is required." }); return; }
     const built = draftToRecord(d);
     const rec = built.rec, baselineN = built.baselineN;
+    const hasPhoto = this.state.draftHasPhoto;
+    rec.hasPhoto = hasPhoto;
+    const photoChanged = this.state.draftPhotoChanged;
+    const photoUrl = this.state.draftPhotoUrl;
+    const resetPhoto = { pendingPhotoId: null, draftPhotoUrl: null, draftHasPhoto: false, draftPhotoChanged: false };
     const baseline = Object.assign({}, this.state.baseline);
-    if (this.state.editingId != null) {
+    const editingId = this.state.editingId;
+    if (editingId != null) {
       const overrides = Object.assign({}, this.state.overrides);
-      overrides[this.state.editingId] = rec;
-      if (baselineN > 0) baseline[this.state.editingId] = baselineN; else delete baseline[this.state.editingId];
-      this.persist({ overrides: overrides, baseline: baseline, modal: null, editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "" });
+      overrides[editingId] = rec;
+      if (baselineN > 0) baseline[editingId] = baselineN; else delete baseline[editingId];
+      this.persist(Object.assign({ overrides: overrides, baseline: baseline, modal: null, editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "" }, resetPhoto));
+      if (photoChanged) this.syncPhotoForWine(editingId, hasPhoto ? photoUrl : null, !hasPhoto);
     } else {
       const newId = this.state.pendingPhotoId || ("new-" + Date.now());
       const rec2 = Object.assign({ id: newId, added: true }, rec);
       if (baselineN > 0) baseline[newId] = baselineN;
-      this.persist({ added: this.state.added.concat([rec2]), baseline: baseline, modal: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "", tab: "cellar", pendingPhotoId: null });
+      this.persist(Object.assign({ added: this.state.added.concat([rec2]), baseline: baseline, modal: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "", tab: "cellar" }, resetPhoto));
+      if (photoChanged) this.syncPhotoForWine(newId, hasPhoto ? photoUrl : null, !hasPhoto);
     }
+  }
+
+  /* Writes (or deletes) a wine's own photo document, and updates the
+     in-memory cache immediately so the just-scanned image shows without
+     a round-trip. Never blocks saving the wine record itself on this --
+     if Firestore is unreachable, the photo simply doesn't sync yet;
+     hasPhoto on the wine record already saved locally either way. */
+  syncPhotoForWine(id, dataUrl, removed) {
+    const cache = Object.assign({}, this.state.photoCache);
+    if (dataUrl) cache[id] = dataUrl; else delete cache[id];
+    this.setState({ photoCache: cache });
+    if (!this.photosColRef) return;
+    const ref = this.photosColRef.doc(String(id));
+    if (dataUrl) {
+      ref.set({ dataUrl: dataUrl, updatedAt: window.firebase.firestore.FieldValue.serverTimestamp() }).catch(function () {});
+    } else if (removed) {
+      ref.delete().catch(function () {});
+    }
+  }
+
+  /* Fetched lazily -- only when actually viewing/editing a wine that has
+     one -- rather than bulk-loading every photo on connect, since there
+     could be many and most views don't need them. */
+  fetchPhotoIfNeeded(id) {
+    if (this.state.photoCache[id] !== undefined || !this.photosColRef) return;
+    const self = this;
+    this.setState({ photoLoading: true });
+    this.photosColRef.doc(String(id)).get().then(function (snap) {
+      const dataUrl = (snap && snap.exists && snap.data() && snap.data().dataUrl) || null;
+      const cache = Object.assign({}, self.state.photoCache);
+      cache[id] = dataUrl;
+      const patch = { photoCache: cache, photoLoading: false };
+      if (self.state.editingId === id) patch.draftPhotoUrl = dataUrl;
+      self.setState(patch);
+    }).catch(function () {
+      self.setState({ photoLoading: false });
+    });
   }
 
   /* Parses the whole pasted block and writes every resulting record in
@@ -1836,8 +1988,11 @@ class Component extends DCLogic {
     const region = w.region === "Unfiled" ? "" : w.region;
     const knownRegions = REGIONS_BY_COUNTRY[w.country] || [];
     const isKnown = !region || knownRegions.indexOf(region) >= 0;
+    const cachedPhoto = this.state.photoCache[w.id];
     this.setState({
-      modal: "add", editingId: w.id, addHint: "", pendingPhotoId: null,
+      modal: "add", editingId: w.id, addHint: "",
+      pendingPhotoId: null, draftPhotoChanged: false, draftHasPhoto: !!w.hasPhoto,
+      draftPhotoUrl: cachedPhoto || null,
       draft: {
         name: w.name, vintage: w.vintage === "n/a" ? "" : w.vintage,
         region: isKnown ? region : OTHER_REGION, regionOther: isKnown ? "" : region,
@@ -1845,9 +2000,11 @@ class Component extends DCLogic {
         style: styleOf(w.color, w.sparkling), qty: String(w.qty),
         baseline: String(this.state.baseline[w.id] || 0),
         rack: w.rack || "", shelf: w.shelf || "",
-        drinkStart: w.drinkStart ? String(w.drinkStart) : "", drinkEnd: w.drinkEnd ? String(w.drinkEnd) : ""
+        drinkStart: w.drinkStart ? String(w.drinkStart) : "", drinkEnd: w.drinkEnd ? String(w.drinkEnd) : "",
+        tags: (w.tags || []).join(", ")
       }
     });
+    if (w.hasPhoto && cachedPhoto === undefined) this.fetchPhotoIfNeeded(w.id);
   }
 
   renderVals() {
@@ -1905,6 +2062,20 @@ class Component extends DCLogic {
       const c = self.chip(st.drinkFilter === d[0]);
       return { label: d[1], bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ drinkFilter: st.drinkFilter === d[0] ? "All" : d[0] }); } };
     });
+    const tagCounts = {};
+    all.forEach(function (w) { w.tags.forEach(function (t) { tagCounts[t] = (tagCounts[t] || 0) + 1; }); });
+    const tagChips = Object.keys(tagCounts)
+      .sort(function (a, b) { return tagCounts[b] - tagCounts[a]; })
+      .map(function (t) {
+        const c = self.chip(st.tagFilter.indexOf(t) >= 0, true);
+        return {
+          label: t + " " + tagCounts[t], bg: c.bg, fg: c.fg, border: c.border,
+          onClick: function () {
+            const has = st.tagFilter.indexOf(t) >= 0;
+            self.setState({ tagFilter: has ? st.tagFilter.filter(function (x) { return x !== t; }) : st.tagFilter.concat([t]) });
+          }
+        };
+      });
     const ratingChips = !inCellar ? [4, 5].map(function (n) {
       const c = self.chip(st.minRating === n, true);
       return { label: n + "★ and up", bg: c.bg, fg: c.fg, border: c.border, onClick: function () { self.setState({ minRating: st.minRating === n ? 0 : n }); } };
@@ -1951,6 +2122,8 @@ class Component extends DCLogic {
         statusLabel: statusMeta ? statusMeta.label : "",
         statusColor: statusMeta ? statusMeta.color : "",
         isLastBottle: inCellar && rem === 1,
+        tagBadges: w.tags.map(function (t) { return { label: t }; }),
+        hasPhoto: w.hasPhoto,
         onEdit: function () { self.openEdit(w); },
         hasInventoryActions: true,
         showBump: inCellar,
@@ -2023,6 +2196,17 @@ class Component extends DCLogic {
       };
     }) : [];
 
+    const timelineItems = st.modal === "timeline" ? this.buildTimeline().map(function (ev) {
+      const who = ev.person && ev.person !== PRIMARY_PERSON ? ev.person : "You";
+      let icon = "🍷", text = "";
+      if (ev.type === "rating") { icon = "★"; text = who + " rated " + ev.wineName + " " + ev.rating + "★"; }
+      else if (ev.type === "opened") { icon = "🍷"; text = "Opened " + ev.wineName; }
+      else if (ev.type === "added") { icon = "➕"; text = "Added " + ev.wineName + " to the cellar"; }
+      else if (ev.type === "wishlist") { icon = "🤍"; text = "Added " + ev.wineName + " to the wishlist"; }
+      return { icon: icon, text: text, when: formatWhen(ev.at), hasNote: !!ev.note, note: ev.note || "" };
+    }) : [];
+    const timelineEmpty = timelineItems.length === 0;
+
     const starButtons = [1, 2, 3, 4, 5].map(function (n) {
       return {
         color: n <= st.draftRating ? "var(--color-accent)" : "var(--color-neutral-300)",
@@ -2088,7 +2272,8 @@ class Component extends DCLogic {
       ["shelf", "Shelf", "2", "text"],
       ["drinkStart", "Drink from (year)", "leave blank if unknown", "numeric"],
       ["drinkEnd", "Drink by (year)", "leave blank if unknown", "numeric"],
-      ["notes", "Note", "Where you bought it, who it's for", "text"]
+      ["notes", "Note", "Where you bought it, who it's for", "text"],
+      ["tags", "Tags", "date night, gift-worthy, birthday", "text"]
     ];
     const addFields = fieldDefs.map(function (f) {
       const selectValues = f[4];
@@ -2175,10 +2360,12 @@ class Component extends DCLogic {
       regionChips: regionChips,
       priceChips: priceChips,
       drinkFilterChips: drinkFilterChips,
+      tagChips: tagChips,
+      hasTagChips: tagChips.length > 0,
       ratingChips: ratingChips,
       hasRatingChips: ratingChips.length > 0,
-      hasFilters: !!(st.query || st.type !== "All" || st.regions.length || st.price !== "All" || st.drinkFilter !== "All" || st.minRating),
-      onClearFilters: function () { self.setState({ query: "", type: "All", regions: [], price: "All", drinkFilter: "All", minRating: 0 }); },
+      hasFilters: !!(st.query || st.type !== "All" || st.regions.length || st.price !== "All" || st.drinkFilter !== "All" || st.tagFilter.length || st.minRating),
+      onClearFilters: function () { self.setState({ query: "", type: "All", regions: [], price: "All", drinkFilter: "All", tagFilter: [], minRating: 0 }); },
       resultLine: (function () {
         const n = inCellar ? list.reduce(function (a, w) { return a + self.remaining(w); }, 0) : list.length;
         return n + (n === 1 ? " bottle" : " bottles");
@@ -2191,6 +2378,7 @@ class Component extends DCLogic {
       emptyBody: inCellar ? "Loosen a filter, or add the bottle you just bought." : "Open a bottle and rate it; it lands here.",
       onSuggest: function () { self.setState({ modal: "suggest", sommelierQuery: "", companions: [], newCompanionName: "" }); },
       onOpenLeaderboard: function () { self.setState({ modal: "leaderboard" }); },
+      onOpenTimeline: function () { self.setState({ modal: "timeline" }); },
       showCellarContent: st.tab !== "wishlist",
       isWishlistTab: st.tab === "wishlist",
       wishlistCountLabel: st.wishlist.length + (st.wishlist.length === 1 ? " bottle" : " bottles"),
@@ -2220,9 +2408,12 @@ class Component extends DCLogic {
       leaderboardItems: leaderboardItems,
       leaderboardEmpty: leaderboardItems.length === 0,
       isLeaderboardModal: st.modal === "leaderboard",
+      isTimelineModal: st.modal === "timeline",
+      timelineItems: timelineItems,
+      timelineEmpty: timelineEmpty,
       onAdd: function () {
         if (st.tab === "wishlist") self.setState({ modal: "wishlistAdd", wishDraft: Object.assign({}, EMPTY_WISH_DRAFT), wishHint: "" });
-        else self.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "", pendingPhotoId: null });
+        else self.setState({ modal: "add", editingId: null, draft: Object.assign({}, EMPTY_DRAFT), addHint: "", pendingPhotoId: null, draftPhotoUrl: null, draftHasPhoto: false, draftPhotoChanged: false });
       },
       onBulkAdd: function () { self.setState({ modal: "bulk", bulkText: "", bulkHint: "" }); },
       onScanFile: function (e) {
@@ -2230,9 +2421,12 @@ class Component extends DCLogic {
         e.target.value = "";
         if (file) self.handleScanFile(file);
       },
+      onRemovePhoto: function () { self.setState({ draftPhotoUrl: null, draftHasPhoto: false, draftPhotoChanged: true }); },
       onCloseModal: function () {
-        if (st.pendingPhotoId) deletePhotoBlob(st.pendingPhotoId);
-        self.setState({ modal: null, target: null, editingId: null, editingRatingFor: null, sommelierQuery: "", selectedTasters: [], draftRatings: {}, newTasterName: "", companions: [], newCompanionName: "", bulkText: "", bulkHint: "", wishDraft: Object.assign({}, EMPTY_WISH_DRAFT), wishHint: "", pendingPhotoId: null });
+        /* Nothing to clean up in Firestore on cancel: a scanned photo only
+           lives in draftPhotoUrl (local state) until saveDraft() actually
+           writes it, so backing out never leaves an orphaned document. */
+        self.setState({ modal: null, target: null, editingId: null, editingRatingFor: null, sommelierQuery: "", selectedTasters: [], draftRatings: {}, newTasterName: "", companions: [], newCompanionName: "", bulkText: "", bulkHint: "", wishDraft: Object.assign({}, EMPTY_WISH_DRAFT), wishHint: "", pendingPhotoId: null, draftPhotoUrl: null, draftHasPhoto: false, draftPhotoChanged: false });
       },
       stop: function (e) { e.stopPropagation(); },
       modalOpen: !!st.modal,
@@ -2256,6 +2450,7 @@ class Component extends DCLogic {
         : st.modal === "leaderboard" ? "Leaderboard"
         : st.modal === "map" ? "Where it’s from"
         : st.modal === "bulk" ? "Bulk add"
+        : st.modal === "timeline" ? "Timeline"
         : st.modal === "wishlistAdd" ? "Add to wishlist"
         : st.modal === "finish" && st.editingRatingFor != null ? "Edit rating"
         : "Opened",
@@ -2264,6 +2459,7 @@ class Component extends DCLogic {
         : st.modal === "leaderboard" ? "Every wine you've rated, ranked by average score."
         : st.modal === "map" ? "Pinch or drag to look around; tap a bubble to filter."
         : st.modal === "bulk" ? "Paste several bottles at once."
+        : st.modal === "timeline" ? "Everything, most recent first."
         : st.modal === "wishlistAdd" ? "A bottle you don't own yet."
         : st.modal === "finish" && st.editingRatingFor != null ? "Correcting the most recent tasting for this wine."
         : "Rate it now while it's in the glass.",
@@ -2292,6 +2488,9 @@ class Component extends DCLogic {
       onConfirmFinish: function () { self.confirmFinish(); },
       addFields: addFields,
       addStyles: addStyles,
+      draftPhotoUrl: st.draftPhotoUrl,
+      hasDraftPhoto: !!st.draftPhotoUrl,
+      photoLoading: st.photoLoading,
       addHint: st.addHint,
       saveBg: st.draft.name.trim() ? "var(--color-accent)" : "var(--color-neutral-400)",
       saveLabel: st.editingId != null ? "Save changes" : "Add to cellar",
